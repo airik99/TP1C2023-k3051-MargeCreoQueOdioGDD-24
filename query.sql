@@ -72,12 +72,6 @@ DROP TABLE MargeCreoQueOdioGDD.medio_de_pago
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_medio_pago')
 DROP TABLE MargeCreoQueOdioGDD.tipo_medio_pago
 
-/***********************DROP PREVENTIVO DE VISTAS***********************/
-/*IF EXISTS (SELECT name FROM sys.objects WHERE name = 'v_Sucursales')
-DROP VIEW DROP_TABLE.v_Sucursales
-GO*/
-/*ESTO DE ACA ARRIBA ESTA COPIADO, HAY QUE MODIFICARLO SI ES QUE LO NECESITAMOS*/
-
 /*********************** Limpiar Schema ***********************/
 IF EXISTS (SELECT name FROM sys.schemas WHERE name = 'MargeCreoQueOdioGDD')
 DROP SCHEMA MargeCreoQueOdioGDD
@@ -598,3 +592,7 @@ FOREIGN KEY (ID_ESTADO) REFERENCES MargeCreoQueOdioGDD.estado_reclamo
 ALTER TABLE MargeCreoQueOdioGDD.operador
 ADD CONSTRAINT FK_DIRECCION_OPERADOR
 FOREIGN KEY (ID_DIRECCION) REFERENCES MargeCreoQueOdioGDD.direccion
+
+/*********************** Creamos los stores procedures ***********************/
+
+/*********************** Realizamos la ejecución de los stores procedures ***********************/
