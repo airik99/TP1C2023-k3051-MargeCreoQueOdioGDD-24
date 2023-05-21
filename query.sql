@@ -646,6 +646,93 @@ AS
 GO
 
 --select * from MargeCreoQueOdioGDD.provincia;
+---------------------------- Estado Mensajeria ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_mensajeria
+ AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los estados de los envios mensajeria...'
+    INSERT INTO estado_mensajeria(NOMBRE)
+		SELECT DISTINCT ENVIO_MENSAJERIA_ESTADO
+		FROM gd_esquema.Maestra 
+		WHERE ENVIO_MENSAJERIA_ESTADO IS NOT NULL
+  END
+GO
+
+--select * from MargeCreoQueOdioGDD.estado_mensajeria;
+---------------------------- Dia ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_dias
+ AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los estados de los dias...'
+    INSERT INTO dia(NOMBRE)
+		SELECT DISTINCT HORARIO_LOCAL_DIA
+		FROM gd_esquema.Maestra 
+		WHERE HORARIO_LOCAL_DIA IS NOT NULL
+  END
+GO
+
+--select * from MargeCreoQueOdioGDD.dia;
+---------------------------- Tipo Local ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
+ AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los estados de los tipos de los locales...'
+    INSERT INTO tipo_local(NOMBRE)
+		SELECT DISTINCT LOCAL_TIPO
+		FROM gd_esquema.Maestra 
+		WHERE LOCAL_TIPO IS NOT NULL
+  END
+GO
+
+--select * from MargeCreoQueOdioGDD.tipo_local;
+---------------------------- Tipo Cupon ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon
+ AS
+  BEGIN
+		PRINT 'Se comienzan a migrar los tipos de los cupones...'
+		INSERT INTO tipo_cupon(TIPO_CUPON)
+		SELECT TIPO_CUPON
+		FROM
+		(
+		 SELECT CUPON_TIPO AS TIPO_CUPON
+		 FROM gd_esquema.Maestra
+			WHERE CUPON_TIPO IS NOT NULL
+		 UNION
+		 SELECT CUPON_RECLAMO_TIPO AS TIPO_CUPON
+		 FROM gd_esquema.Maestra
+			WHERE CUPON_RECLAMO_TIPO IS NOT NULL
+		) AS subquery
+		WHERE TIPO_CUPON NOT IN (SELECT TIPO_CUPON FROM MargeCreoQueOdioGDD.tipo_cupon);
+	END;
+GO
+
+--select * from MargeCreoQueOdioGDD.tipo_cupon;
+---------------------------- Estado Pedido ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido
+ AS
+  BEGIN
+		PRINT 'Se comienzan a migrar los estados de los pedidos...'
+		INSERT INTO estado_pedido(NOMBRE)
+		SELECT DISTINCT PEDIDO_ESTADO
+		FROM gd_esquema.Maestra 
+		WHERE PEDIDO_ESTADO IS NOT NULL -- esto es raro o es un error, porque los datos que hay del estado del pedido dicen "envio mensajeria entregado", cuando es un pedido, no un envio mensajeria
+	END;
+GO
+
+--select * from MargeCreoQueOdioGDD.estado_pedido;
+---------------------------- Tipo Movilidad ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_movilidad
+ AS
+  BEGIN
+		PRINT 'Se comienzan a migrar los tipos de movilidad de los repartidores...'
+		INSERT INTO tipo_movilidad(TIPO_MOVILIDAD)
+		SELECT DISTINCT REPARTIDOR_TIPO_MOVILIDAD
+		FROM gd_esquema.Maestra 
+		WHERE REPARTIDOR_TIPO_MOVILIDAD IS NOT NULL 
+	END;
+GO
+
+--select * from MargeCreoQueOdioGDD.tipo_movilidad;
 /*---------------------------- Localidad ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
  AS
@@ -685,22 +772,28 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
   BEGIN
 	PRINT 'Se comienzan a migrar los usuarios...'
     INSERT INTO usuario (NOMBRE, APELLIDO, DNI, FECHA_REGISTRO, TELEFONO, EMAIL, FECHA_NACIMIENTO, ID_DIRECCION)
-		SELECT Maestra.USUARIO_NOMBRE, USUARIO_APELLIDO, USUARIO_DNI, USUARIO_FECHA_REGISTRO, USUARIO_FECHA_REGISTRO,
+		SELECT USUARIO_NOMBRE, USUARIO_APELLIDO, USUARIO_DNI, USUARIO_FECHA_REGISTRO, USUARIO_FECHA_REGISTRO,
 			   USUARIO_TELEFONO, USUARIO_MAIL, USUARIO_FECHA_NAC
 			   /*(SELECT direccion.ID_DIRECCION
 			   WHERE direccion.calle = RTRIM(SUBSTRING(DIRECCION_USUARIO_DIRECCION, 1, (LEN(DIRECCION_USUARIO_DIRECCION) - 4)))
 					 AND direccion.numero = LTRIM(RIGHT(DIRECCION_USUARIO_DIRECCION, 4))
 					 AND direccion.NOMBRE = Maestra.DIRECCION_USUARIO_NOMBRE
 					 -- TODO: codigo postal creo que no esta en la tabla Maestra
-			   )*/
-		FROM gd_esquema.Maestra
+			   )
+		FROM gd_esquema.Maestra*/
 		--PRINT '¡La migracion de USUARIOS finalizó con éxito!'
   END
-GO*/
-
+GO
+*/
 /*********************** Realizamos la ejecución de los stores procedures ***********************/
 EXEC MargeCreoQueOdioGDD.migrar_tipo_medio_pagos;
 EXEC MargeCreoQueOdioGDD.migrar_tipo_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_estados_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_paquetes;
 EXEC MargeCreoQueOdioGDD.migrar_provincias;
+EXEC MargeCreoQueOdioGDD.migrar_estados_mensajeria;
+EXEC MargeCreoQueOdioGDD.migrar_dias;
+EXEC MargeCreoQueOdioGDD.migrar_tipos_local;
+EXEC MargeCreoQueOdioGDD.migrar_tipos_cupon;
+EXEC MargeCreoQueOdioGDD.migrar_estados_pedido;
+EXEC MargeCreoQueOdioGDD.migrar_tipos_movilidad;
