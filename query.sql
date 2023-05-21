@@ -556,12 +556,6 @@ ADD CONSTRAINT FK_DIRECCION_OPERADOR
 FOREIGN KEY (ID_DIRECCION) REFERENCES MargeCreoQueOdioGDD.direccion
 
 /*********************** Creamos los stores procedures ***********************/
-CREATE TABLE MargeCreoQueOdioGDD.localidad (
-ID_LOCALIDAD INT IDENTITY(1,1), --PK
-NOMBRE NVARCHAR(255) NOT NULL,
-ID_PROVINCIA INT NOT NULL, --FK
-PRIMARY KEY (ID_LOCALIDAD)
-);
 ---------------------------- Provincia ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_provincias
  AS
