@@ -5,73 +5,148 @@ GO
 /*********************** Limpiar tablas ***********************/
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'descuentoxreclamo')
 DROP TABLE MargeCreoQueOdioGDD.descuentoxreclamo;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'descuentoxpedido')
 DROP TABLE MargeCreoQueOdioGDD.descuentoxpedido;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'productoxpedido')
 DROP TABLE MargeCreoQueOdioGDD.productoxpedido;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'horarioxdia')
 DROP TABLE MargeCreoQueOdioGDD.horarioxdia;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'reclamo')
 DROP TABLE MargeCreoQueOdioGDD.reclamo;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'cupon_descuento')
 DROP TABLE MargeCreoQueOdioGDD.cupon_descuento;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'pedido')
 DROP TABLE MargeCreoQueOdioGDD.pedido;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'producto')
 DROP TABLE MargeCreoQueOdioGDD.producto;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'horario_local')
 DROP TABLE MargeCreoQueOdioGDD.horario_local;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'envio_mensajeria')
 DROP TABLE MargeCreoQueOdioGDD.envio_mensajeria;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'medio_de_pago')
 DROP TABLE MargeCreoQueOdioGDD.medio_de_pago;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'envio')
 DROP TABLE MargeCreoQueOdioGDD.envio;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'local')
 DROP TABLE MargeCreoQueOdioGDD.local;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'operador')
 DROP TABLE MargeCreoQueOdioGDD.operador;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'usuario')
 DROP TABLE MargeCreoQueOdioGDD.usuario;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'repartidor')
 DROP TABLE MargeCreoQueOdioGDD.repartidor;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'direccion')
 DROP TABLE MargeCreoQueOdioGDD.direccion;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'categoria_local')
 DROP TABLE MargeCreoQueOdioGDD.categoria_local;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'localidad')
 DROP TABLE MargeCreoQueOdioGDD.localidad;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'paquete')
 DROP TABLE MargeCreoQueOdioGDD.paquete;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_movilidad')
 DROP TABLE MargeCreoQueOdioGDD.tipo_movilidad;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'estado_mensajeria')
 DROP TABLE MargeCreoQueOdioGDD.estado_mensajeria;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'estado_pedido')
 DROP TABLE MargeCreoQueOdioGDD.estado_pedido;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_cupon')
 DROP TABLE MargeCreoQueOdioGDD.tipo_cupon;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_medio_pago')
 DROP TABLE MargeCreoQueOdioGDD.tipo_medio_pago
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_reclamo')
 DROP TABLE MargeCreoQueOdioGDD.tipo_reclamo
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'estado_reclamo')
 DROP TABLE MargeCreoQueOdioGDD.estado_reclamo
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_paquete')
 DROP TABLE MargeCreoQueOdioGDD.tipo_paquete
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'provincia')
 DROP TABLE MargeCreoQueOdioGDD.provincia
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'dia')
 DROP TABLE MargeCreoQueOdioGDD.dia
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_local')
 DROP TABLE MargeCreoQueOdioGDD.tipo_local
 
 /*********************** Limpiar Store Procedures ***********************/
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipo_medio_pagos')
-		DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipo_medio_pagos
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipos_medio_pagos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_medio_pagos;
+GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipo_reclamos')
-		DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipo_reclamos
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipos_reclamos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_reclamos;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipos_paquetes')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_paquetes;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipos_local')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipos_cupon')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipos_movilidad')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_movilidad;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_provincias')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_provincias;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_localidades')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_localidades;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_estados_reclamos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_estados_reclamos;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_estados_mensajeria')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_estados_mensajeria;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_estados_pedido')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_dias')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_dias;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_usuarios')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios;
 GO
 
 /*********************** Limpiar Schema ***********************/
@@ -272,7 +347,6 @@ ID_LOCALIDAD INT NOT NULL, --FK
 NOMBRE_DIRECCION NVARCHAR(255),
 CALLE NVARCHAR(255) NOT NULL,
 NUMERO INT NOT NULL,
-OBSERVACIONES NVARCHAR(255),
 PRIMARY KEY (ID_DIRECCION)
 );
 
@@ -567,7 +641,7 @@ GO
 
 /*********************** Creamos los stores procedures ***********************/
 ---------------------------- Tipo Medio Pago ----------------------------
-CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipo_medio_pagos
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_medio_pagos
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar los tipos de medios de pagos...'
@@ -580,7 +654,7 @@ GO
 
 --select * from MargeCreoQueOdioGDD.tipo_medio_pago; -- para ver lo que se migró
 ---------------------------- Tipo Reclamo ----------------------------
-CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipo_reclamos
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_reclamos
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar los tipos de reclamos...'
@@ -620,32 +694,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_paquetes
 GO
 
 --select * from MargeCreoQueOdioGDD.tipo_paquete;
----------------------------- Provincia ----------------------------
-CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_provincias
-AS
-	BEGIN
-		PRINT 'Se comienzan a migrar las provincias...'
-		INSERT INTO MargeCreoQueOdioGDD.provincia (NOMBRE)
-		SELECT NOMBRE
-		FROM
-		(
-		 SELECT ENVIO_MENSAJERIA_PROVINCIA AS NOMBRE
-		 FROM gd_esquema.Maestra
-			WHERE ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL
-		 UNION
-		 SELECT DIRECCION_USUARIO_PROVINCIA AS NOMBRE
-		 FROM gd_esquema.Maestra
-			WHERE DIRECCION_USUARIO_PROVINCIA IS NOT NULL
-		 UNION
-		 SELECT LOCAL_PROVINCIA AS NOMBRE
-		 FROM gd_esquema.Maestra
-			 WHERE LOCAL_PROVINCIA IS NOT NULL
-		) AS subquery
-		WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.provincia);
-	END;
-GO
-
---select * from MargeCreoQueOdioGDD.provincia;
 ---------------------------- Estado Mensajeria ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_mensajeria
  AS
@@ -733,40 +781,116 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_movilidad
 GO
 
 --select * from MargeCreoQueOdioGDD.tipo_movilidad;
-/*---------------------------- Localidad ----------------------------
+---------------------------- Provincia ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_provincias
+AS
+	BEGIN
+		PRINT 'Se comienzan a migrar las provincias...'
+		INSERT INTO MargeCreoQueOdioGDD.provincia (NOMBRE)
+		SELECT NOMBRE
+		FROM
+		(
+		 SELECT ENVIO_MENSAJERIA_PROVINCIA AS NOMBRE
+		 FROM gd_esquema.Maestra
+			WHERE ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL
+		 UNION
+		 SELECT DIRECCION_USUARIO_PROVINCIA AS NOMBRE
+		 FROM gd_esquema.Maestra
+			WHERE DIRECCION_USUARIO_PROVINCIA IS NOT NULL
+		 UNION
+		 SELECT LOCAL_PROVINCIA AS NOMBRE
+		 FROM gd_esquema.Maestra
+			 WHERE LOCAL_PROVINCIA IS NOT NULL
+		) AS subquery
+		WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.provincia);
+	END;
+GO
+
+--select * from MargeCreoQueOdioGDD.provincia;
+---------------------------- Localidad ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar las localidades...'
     INSERT INTO localidad (NOMBRE, ID_PROVINCIA)
-		SELECT Maestra.LOCAL_LOCALIDAD, Maestra.ENVIO_MENSAJERIA_LOCALIDAD, Maestra.DIRECCION_USUARIO_LOCALIDAD,
-		(SELECT provincia.ID_PROVINCIA
-		FROM provincia WHERE provincia.NOMBRE = Maestra.ENVIO_MENSAJERIA_PROVINCIA OR provincia.NOMBRE = Maestra.DIRECCION_USUARIO_PROVINCIA OR provincia.NOMBRE = Maestra.LOCAL_PROVINCIA)
-		-- TODO: Idem otros, al haber varios campos distintos provincia ver como se maneja
-		FROM gd_esquema.Maestra
-		--PRINT '¡La migracion de LOCALIDADES finalizó con éxito!'
+
+		SELECT NOMBRE, ID_PROVINCIA
+		FROM
+		(SELECT DISTINCT(ENVIO_MENSAJERIA_LOCALIDAD) AS NOMBRE,
+				(SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.ENVIO_MENSAJERIA_PROVINCIA) AS ID_PROVINCIA
+		 FROM gd_esquema.Maestra
+		 WHERE ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL
+		 UNION
+		 SELECT DISTINCT(DIRECCION_USUARIO_LOCALIDAD) AS NOMBRE,
+				(SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.DIRECCION_USUARIO_PROVINCIA) AS ID_PROVINCIA
+		 FROM gd_esquema.Maestra
+		 WHERE DIRECCION_USUARIO_LOCALIDAD IS NOT NULL
+		 UNION
+		 SELECT DISTINCT(LOCAL_LOCALIDAD) AS NOMBRE,
+				(SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.LOCAL_PROVINCIA) AS ID_PROVINCIA
+		 FROM gd_esquema.Maestra
+		 WHERE LOCAL_LOCALIDAD IS NOT NULL) AS subquery
+		 WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.localidad);
+
+		PRINT '¡La migracion de LOCALIDADES finalizó con éxito!'
   END
 GO
 
----------------------------- Direccion ----------------------------
+select * from MargeCreoQueOdioGDD.localidad
+join MargeCreoQueOdioGDD.provincia on (localidad.ID_PROVINCIA = provincia.ID_PROVINCIA)
+
+/*---------------------------- Direccion ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar las direcciones...'
-    INSERT INTO direccion (ID_LOCALIDAD, NOMBRE_DIRECCION, CALLE, NUMERO, OBSERVACIONES)
-		SELECT (SELECT localidad.ID_LOCALIDAD
-				FROM localidad 
-				WHERE localidad.NOMBRE = Maestra.DIRECCION_USUARIO_LOCALIDAD OR localidad.NOMBRE = Maestra.LOCAL_LOCALIDAD) AS Localidad
-				-- TODO: Tenemos distintos tipos de direcciones: usuario, operador, repartidor,... ver como migrar distintos campos
-				--CALLE = RTRIM(SUBSTRING(Maestra.DIRECCION_USUARIO_DIRECCION, 1, (LEN(Maestra.DIRECCION_USUARIO_DIRECCION) - 4)))
-				--NUMERO = LTRIM(RIGHT(Maestra.DIRECCION_USUARIO_DIRECCION, 4)))
-		FROM gd_esquema.Maestra
-		--PRINT '¡La migracion de DIRECCIONES finalizó con éxito!'
-FROM gd_esquema.Maestra
+
+    INSERT INTO direccion (ID_LOCALIDAD, NOMBRE_DIRECCION, CALLE, NUMERO)
+
+		SELECT ID_LOCALIDAD, NOMBRE_DIRECCION, CALLE, NUMERO
+		FROM (SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = DIRECCION_USUARIO_LOCALIDAD) AS ID_LOCALIDAD,
+					  DIRECCION_USUARIO_NOMBRE AS NOMBRE_DIRECCION,
+					  RTRIM(SUBSTRING(DIRECCION_USUARIO_DIRECCION, 1, (LEN(DIRECCION_USUARIO_DIRECCION) - 4))) AS CALLE, 
+					  LTRIM(RIGHT(DIRECCION_USUARIO_DIRECCION, 4)) AS NUMERO
+			  FROM gd_esquema.Maestra
+			  WHERE DIRECCION_USUARIO_DIRECCION IS NOT NULL
+			  UNION
+			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD) AS ID_LOCALIDAD,
+					  --ENVIO_MENSAJERIA_DIR_ORIG AS NOMBRE_DIRECCION,
+					  RTRIM(SUBSTRING(ENVIO_MENSAJERIA_DIR_ORIG, 1, (LEN(ENVIO_MENSAJERIA_DIR_ORIG) - 4))) AS CALLE, 
+					  LTRIM(RIGHT(ENVIO_MENSAJERIA_DIR_ORIG, 4)) AS NUMERO
+			  FROM gd_esquema.Maestra
+			  WHERE ENVIO_MENSAJERIA_DIR_ORIG IS NOT NULL
+			  UNION
+			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD) AS ID_LOCALIDAD,
+					  --ENVIO_MENSAJERIA_DIR_DEST AS NOMBRE_DIRECCION,
+					  RTRIM(SUBSTRING(ENVIO_MENSAJERIA_DIR_DEST, 1, (LEN(ENVIO_MENSAJERIA_DIR_DEST) - 4))) AS CALLE, 
+					  LTRIM(RIGHT(ENVIO_MENSAJERIA_DIR_DEST, 4)) AS NUMERO
+			  FROM gd_esquema.Maestra
+			  WHERE ENVIO_MENSAJERIA_DIR_DEST IS NOT NULL
+			  UNION
+			  SELECT --(SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = ???) AS ID_LOCALIDAD,
+					 --ENVIO_MENSAJERIA_DIR_DEST AS NOMBRE_DIRECCION,
+					 RTRIM(SUBSTRING(OPERADOR_RECLAMO_DIRECCION, 1, (LEN(OPERADOR_RECLAMO_DIRECCION) - 4))) AS CALLE, 
+					 LTRIM(RIGHT(OPERADOR_RECLAMO_DIRECCION, 4)) AS NUMERO
+			  FROM gd_esquema.Maestra
+			  WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL
+			  UNION
+			  SELECT --(SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = ???) AS ID_LOCALIDAD,
+					 --REPARTIDOR_DIRECION AS NOMBRE_DIRECCION,
+					 RTRIM(SUBSTRING(REPARTIDOR_DIRECION, 1, (LEN(REPARTIDOR_DIRECION) - 4))) AS CALLE, 
+					 LTRIM(RIGHT(REPARTIDOR_DIRECION, 4)) AS NUMERO
+			  FROM gd_esquema.Maestra
+			  WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL) AS subquery
+		--WHERE CALLE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.direccion);
+		-- TODO: VER COMO NO INSERTAR REPETIDOS YA QUE PODES TENER REPETIDA LA CALLE PERO NO CON IGUAL NUMERO POR EJ.
+		
+		PRINT '¡La migracion de DIRECCIONES finalizó con éxito!'
+
   END
 GO
-
----------------------------- Usuario ----------------------------
+*/
+/*---------------------------- Usuario ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
  AS
   BEGIN
@@ -786,14 +910,16 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
 GO
 */
 /*********************** Realizamos la ejecución de los stores procedures ***********************/
-EXEC MargeCreoQueOdioGDD.migrar_tipo_medio_pagos;
-EXEC MargeCreoQueOdioGDD.migrar_tipo_reclamos;
-EXEC MargeCreoQueOdioGDD.migrar_estados_reclamos;
+
+EXEC MargeCreoQueOdioGDD.migrar_tipos_medio_pagos;
+EXEC MargeCreoQueOdioGDD.migrar_tipos_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_paquetes;
-EXEC MargeCreoQueOdioGDD.migrar_provincias;
-EXEC MargeCreoQueOdioGDD.migrar_estados_mensajeria;
-EXEC MargeCreoQueOdioGDD.migrar_dias;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_local;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_cupon;
-EXEC MargeCreoQueOdioGDD.migrar_estados_pedido;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_movilidad;
+EXEC MargeCreoQueOdioGDD.migrar_provincias;
+EXEC MargeCreoQueOdioGDD.migrar_localidades;
+EXEC MargeCreoQueOdioGDD.migrar_estados_pedido;
+EXEC MargeCreoQueOdioGDD.migrar_estados_reclamos;
+EXEC MargeCreoQueOdioGDD.migrar_estados_mensajeria;
+EXEC MargeCreoQueOdioGDD.migrar_dias;
