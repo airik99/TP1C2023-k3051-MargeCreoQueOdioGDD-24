@@ -836,8 +836,8 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
   END
 GO
 
-select * from MargeCreoQueOdioGDD.localidad
-join MargeCreoQueOdioGDD.provincia on (localidad.ID_PROVINCIA = provincia.ID_PROVINCIA)
+--select * from MargeCreoQueOdioGDD.localidad
+--join MargeCreoQueOdioGDD.provincia on (localidad.ID_PROVINCIA = provincia.ID_PROVINCIA)
 
 /*---------------------------- Direccion ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
