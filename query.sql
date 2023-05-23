@@ -32,6 +32,9 @@ DROP TABLE MargeCreoQueOdioGDD.horario_local;
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'envio_mensajeria')
 DROP TABLE MargeCreoQueOdioGDD.envio_mensajeria;
 
+IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_paquete')
+DROP TABLE MargeCreoQueOdioGDD.tipo_paquete
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'medio_de_pago')
 DROP TABLE MargeCreoQueOdioGDD.medio_de_pago;
 
@@ -59,9 +62,6 @@ DROP TABLE MargeCreoQueOdioGDD.categoria_local;
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'localidad')
 DROP TABLE MargeCreoQueOdioGDD.localidad;
 
-IF EXISTS (SELECT name FROM sys.tables WHERE name = 'paquete')
-DROP TABLE MargeCreoQueOdioGDD.paquete;
-
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_movilidad')
 DROP TABLE MargeCreoQueOdioGDD.tipo_movilidad;
 
@@ -82,9 +82,6 @@ DROP TABLE MargeCreoQueOdioGDD.tipo_reclamo
 
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'estado_reclamo')
 DROP TABLE MargeCreoQueOdioGDD.estado_reclamo
-
-IF EXISTS (SELECT name FROM sys.tables WHERE name = 'tipo_paquete')
-DROP TABLE MargeCreoQueOdioGDD.tipo_paquete
 
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'provincia')
 DROP TABLE MargeCreoQueOdioGDD.provincia
@@ -159,6 +156,16 @@ GO
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_operadores')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_operadores;
 GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipo_medio_pagos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipo_medio_pagos;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipo_reclamos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipo_reclamos;
+GO
+
+
 
 /*********************** Limpiar Schema ***********************/
 IF EXISTS (SELECT name FROM sys.schemas WHERE name = 'MargeCreoQueOdioGDD')
@@ -376,7 +383,7 @@ NRO_ENVIO_MENSAJERIA INT NOT NULL, --PK
 ID_USUARIO INT NOT NULL, --FK
 ID_DIRECCION_ORIGEN INT NOT NULL, --FK
 ID_MEDIO_PAGO INT NOT NULL, --FK
-ID_PAQUETE INT NOT NULL, --FK
+ID_TIPO_PAQUETE INT NOT NULL, --FK
 ID_ENVIO INT NOT NULL, --FK
 ID_ESTADO INT NOT NULL, --FK
 FECHA_HORA_PEDIDO DATETIME,
@@ -395,12 +402,6 @@ NOMBRE NVARCHAR(255) NOT NULL,
 PRIMARY KEY (ID_ESTADO)
 );
 
-CREATE TABLE MargeCreoQueOdioGDD.paquete (
-ID_PAQUETE INT IDENTITY(1,1), --PK
-ID_TIPO_PAQUETE INT NOT NULL, --FK
-VALOR_ASEGURADO FLOAT,
-PRIMARY KEY(ID_PAQUETE)
-);
 
 CREATE TABLE MargeCreoQueOdioGDD.tipo_paquete (
 ID_TIPO_PAQUETE INT IDENTITY(1,1), --PK
@@ -409,8 +410,10 @@ MEDIDA_ANCHO INT,
 MEDIDA_LARGO INT,
 MEDIDA_ALTO INT,
 PESO_MAXIMO FLOAT,
+VALOR_ASEGURADO FLOAT,
 PRIMARY KEY(ID_TIPO_PAQUETE)
 );
+
 
 -------------------------- RECLAMO --------------------------
 CREATE TABLE MargeCreoQueOdioGDD.reclamo (
@@ -604,17 +607,12 @@ ADD CONSTRAINT FK_MEDIO_DE_PAGO_ENVIO_MENSAJERIA
 FOREIGN KEY (ID_MEDIO_PAGO) REFERENCES MargeCreoQueOdioGDD.medio_de_pago
 
 ALTER TABLE MargeCreoQueOdioGDD.envio_mensajeria
-ADD CONSTRAINT FK_PAQUETE_ENVIO_MENSAJERIA
-FOREIGN KEY (ID_PAQUETE) REFERENCES MargeCreoQueOdioGDD.paquete
+ADD CONSTRAINT FK_TIPO_PAQUETE_ENVIO_MENSAJERIA
+FOREIGN KEY (ID_TIPO_PAQUETE) REFERENCES MargeCreoQueOdioGDD.tipo_paquete
 
 ALTER TABLE MargeCreoQueOdioGDD.envio_mensajeria
 ADD CONSTRAINT FK_ENVIO_ENVIO_MENSAJERIA
 FOREIGN KEY (ID_ENVIO) REFERENCES MargeCreoQueOdioGDD.envio
------------------------------- Paquete -------------------------------
-ALTER TABLE MargeCreoQueOdioGDD.paquete
-ADD CONSTRAINT FK_TIPO_PAQUETE_PAQUETE
-FOREIGN KEY (ID_TIPO_PAQUETE) REFERENCES MargeCreoQueOdioGDD.tipo_paquete
-
 -------------------------- RECLAMO --------------------------
 ALTER TABLE MargeCreoQueOdioGDD.reclamo
 ADD CONSTRAINT FK_USUARIO_RECLAMO 
@@ -690,8 +688,8 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_paquetes
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar los tipos de los paquetes...'
-    INSERT INTO tipo_paquete(TIPO_PAQUETE, MEDIDA_ANCHO, MEDIDA_LARGO, MEDIDA_ALTO, PESO_MAXIMO)
-		SELECT DISTINCT PAQUETE_TIPO, PAQUETE_ANCHO_MAX, PAQUETE_LARGO_MAX,PAQUETE_ALTO_MAX, PAQUETE_PESO_MAX
+    INSERT INTO tipo_paquete(TIPO_PAQUETE, MEDIDA_ANCHO, MEDIDA_LARGO, MEDIDA_ALTO, PESO_MAXIMO, VALOR_ASEGURADO)
+		SELECT DISTINCT PAQUETE_TIPO, PAQUETE_ANCHO_MAX, PAQUETE_LARGO_MAX,PAQUETE_ALTO_MAX, PAQUETE_PESO_MAX, PAQUETE_TIPO_PRECIO
 		FROM gd_esquema.Maestra 
 		WHERE PAQUETE_TIPO IS NOT NULL
   END
