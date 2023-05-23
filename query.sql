@@ -1,7 +1,6 @@
 USE GD1C2023
 GO
 
-/*son 31 drops*/
 /*********************** Limpiar tablas ***********************/
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'descuentoxreclamo')
 DROP TABLE MargeCreoQueOdioGDD.descuentoxreclamo;
@@ -129,6 +128,10 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_localidades')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_localidades;
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_direcciones')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones;
+GO
+
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_estados_reclamos')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_estados_reclamos;
 GO
@@ -147,6 +150,14 @@ GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_usuarios')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_repartidores')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_operadores')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_operadores;
 GO
 
 /*********************** Limpiar Schema ***********************/
@@ -829,8 +840,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
   END
 GO
 
---select * from MargeCreoQueOdioGDD.localidad
---join MargeCreoQueOdioGDD.provincia on (localidad.ID_PROVINCIA = provincia.ID_PROVINCIA)
+--select * from MargeCreoQueOdioGDD.localidad join MargeCreoQueOdioGDD.provincia on (localidad.ID_PROVINCIA = provincia.ID_PROVINCIA)
 /*---------------------------- Direccion ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
  AS
@@ -908,7 +918,59 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
 GO
 
 --SELECT * FROM MargeCreoQueOdioGDD.usuario
+---------------------------- Repartidor ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
+ AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los repartidores...'
+    INSERT INTO repartidor (NOMBRE, APELLIDO, DNI, TELEFONO, EMAIL, ID_DIRECCION, FECHA_NACIMIENTO, ID_LOCALIDAD, ID_TIPO_MOVILIDAD)
 
+		SELECT REPARTIDOR_NOMBRE AS NOMBRE,
+			   REPARTIDOR_APELLIDO AS APELLIDO,
+			   REPARTIDOR_DNI AS DNI,
+			   REPARTIDOR_TELEFONO AS TELEFONO,
+			   REPARTIDOR_EMAIL AS EMAIL,
+			   (SELECT direccion.ID_DIRECCION FROM direccion 
+			   WHERE direccion.CALLE = RTRIM(SUBSTRING(REPARTIDOR_DIRECION, 1, (LEN(REPARTIDOR_DIRECION) - 4))) AND
+					 direccion.NUMERO = LTRIM(RIGHT(REPARTIDOR_DIRECION, 4))) AS ID_DIRECCION,
+			   REPARTIDOR_FECHA_NAC AS FECHA_NACIMIENTO,
+			   (SELECT localidad.ID_LOCALIDAD FROM localidad
+				WHERE localidad.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL THEN ENVIO_MENSAJERIA_LOCALIDAD
+													  WHEN LOCAL_LOCALIDAD IS NOT NULL THEN LOCAL_LOCALIDAD
+												 END AS REPARTIDOR_LOCALIDAD)) AS ID_LOCALIDAD,
+			   (SELECT tipo_movilidad.ID_TIPO FROM tipo_movilidad WHERE tipo_movilidad.TIPO_MOVILIDAD = REPARTIDOR_TIPO_MOVILIDAD) AS ID_TIPO_MOVIMIENTO
+		FROM gd_esquema.Maestra
+		-- TODO: Falta controlar repetidos (por DNI? MAIL?)
+
+		PRINT '¡La migracion de REPARTIDORES finalizó con éxito!'
+  END
+GO
+
+--select * from MargeCreoQueOdioGDD.repartidor
+---------------------------- Operador ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
+ AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los operadores...'
+    INSERT INTO operador (NOMBRE, APELLIDO, DNI, FECHA_NACIMIENTO, EMAIL, ID_DIRECCION, TELEFONO)
+
+		SELECT OPERADOR_RECLAMO_NOMBRE AS NOMBRE,
+			   OPERADOR_RECLAMO_APELLIDO AS APELLIDO,
+			   OPERADOR_RECLAMO_DNI AS DNI,
+			   OPERADOR_RECLAMO_FECHA_NAC AS FECHA_NACIMIENTO,
+			   OPERADOR_RECLAMO_MAIL AS EMAIL,
+			   (SELECT direccion.ID_DIRECCION FROM direccion 
+			   WHERE direccion.CALLE = RTRIM(SUBSTRING(OPERADOR_RECLAMO_DIRECCION, 1, (LEN(REPARTIDOR_DIRECION) - 4))) AND
+					 direccion.NUMERO = LTRIM(RIGHT(OPERADOR_RECLAMO_DIRECCION, 4))) AS ID_DIRECCION,
+			   OPERADOR_RECLAMO_TELEFONO AS TELEFONO
+		FROM gd_esquema.Maestra
+		-- TODO: Falta controlar repetidos (por DNI? MAIL?)
+
+		PRINT '¡La migracion de OPERADORES finalizó con éxito!'
+  END
+GO
+
+--select * from MargeCreoQueOdioGDD.operador
 /*********************** Realizamos la ejecución de los stores procedures ***********************/
 
 EXEC MargeCreoQueOdioGDD.migrar_tipos_medio_pagos;
@@ -925,3 +987,5 @@ EXEC MargeCreoQueOdioGDD.migrar_estados_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_estados_mensajeria;
 EXEC MargeCreoQueOdioGDD.migrar_dias;
 EXEC MargeCreoQueOdioGDD.migrar_usuarios;
+EXEC MargeCreoQueOdioGDD.migrar_repartidores;
+EXEC MargeCreoQueOdioGDD.migrar_operadores;
