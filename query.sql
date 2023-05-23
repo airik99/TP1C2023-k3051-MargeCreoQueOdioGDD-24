@@ -165,8 +165,6 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipo_reclamos
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipo_reclamos;
 GO
 
-
-
 /*********************** Limpiar Schema ***********************/
 IF EXISTS (SELECT name FROM sys.schemas WHERE name = 'MargeCreoQueOdioGDD')
 BEGIN
@@ -839,7 +837,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
 GO
 
 --select * from MargeCreoQueOdioGDD.localidad join MargeCreoQueOdioGDD.provincia on (localidad.ID_PROVINCIA = provincia.ID_PROVINCIA)
-/*---------------------------- Direccion ----------------------------
+---------------------------- Direccion ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
  AS
   BEGIN
@@ -856,40 +854,43 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
 			  WHERE DIRECCION_USUARIO_DIRECCION IS NOT NULL
 			  UNION
 			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD) AS ID_LOCALIDAD,
-					  '' AS NOMBRE_DIRECCION, --ENVIO_MENSAJERIA_DIR_ORIG
+					  '' AS NOMBRE_DIRECCION,
 					  RTRIM(SUBSTRING(ENVIO_MENSAJERIA_DIR_ORIG, 1, (LEN(ENVIO_MENSAJERIA_DIR_ORIG) - 4))) AS CALLE, 
 					  LTRIM(RIGHT(ENVIO_MENSAJERIA_DIR_ORIG, 4)) AS NUMERO
 			  FROM gd_esquema.Maestra
 			  WHERE ENVIO_MENSAJERIA_DIR_ORIG IS NOT NULL
 			  UNION
 			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD) AS ID_LOCALIDAD,
-					  '' AS NOMBRE_DIRECCION, --ENVIO_MENSAJERIA_DIR_DEST
+					  '' AS NOMBRE_DIRECCION,
 					  RTRIM(SUBSTRING(ENVIO_MENSAJERIA_DIR_DEST, 1, (LEN(ENVIO_MENSAJERIA_DIR_DEST) - 4))) AS CALLE, 
 					  LTRIM(RIGHT(ENVIO_MENSAJERIA_DIR_DEST, 4)) AS NUMERO
 			  FROM gd_esquema.Maestra
 			  WHERE ENVIO_MENSAJERIA_DIR_DEST IS NOT NULL
 			  UNION
-			  SELECT NULL AS ID_LOCALIDAD, --(SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = ???)
-					 '' AS NOMBRE_DIRECCION, --ENVIO_MENSAJERIA_DIR_DEST
+			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = LOCAL_LOCALIDAD) AS ID_LOCALIDAD,
+					 '' AS NOMBRE_DIRECCION,
 					 RTRIM(SUBSTRING(OPERADOR_RECLAMO_DIRECCION, 1, (LEN(OPERADOR_RECLAMO_DIRECCION) - 4))) AS CALLE, 
 					 LTRIM(RIGHT(OPERADOR_RECLAMO_DIRECCION, 4)) AS NUMERO
 			  FROM gd_esquema.Maestra
 			  WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL
 			  UNION
-			  SELECT NULL AS ID_LOCALIDAD, --(SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = ???)
-					 '' AS NOMBRE_DIRECCION, --REPARTIDOR_DIRECION
+			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad
+					  WHERE localidad.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL THEN ENVIO_MENSAJERIA_LOCALIDAD
+															WHEN LOCAL_LOCALIDAD IS NOT NULL THEN LOCAL_LOCALIDAD
+													   END AS REPARTIDOR_LOCALIDAD)) AS ID_LOCALIDAD,
+					 '' AS NOMBRE_DIRECCION,
 					 RTRIM(SUBSTRING(REPARTIDOR_DIRECION, 1, (LEN(REPARTIDOR_DIRECION) - 4))) AS CALLE, 
 					 LTRIM(RIGHT(REPARTIDOR_DIRECION, 4)) AS NUMERO
 			  FROM gd_esquema.Maestra
 			  WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL) AS subquery
-		--WHERE DIRECCION NOT IN (SELECT DIRECCION FROM MargeCreoQueOdioGDD.direccion)
+		WHERE CONCAT(CALLE, ' ', NUMERO) NOT IN (SELECT CONCAT(CALLE, ' ', NUMERO) FROM MargeCreoQueOdioGDD.direccion)
 		
 		PRINT '¡La migracion de DIRECCIONES finalizó con éxito!'
 
   END
 GO
 
-select * from MargeCreoQueOdioGDD.direccion*/
+--select * from MargeCreoQueOdioGDD.direccion
 ---------------------------- Usuario ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
  AS
@@ -909,7 +910,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
 			  direccion.NUMERO = LTRIM(RIGHT(DIRECCION_USUARIO_DIRECCION, 4)) AND
 			  direccion.ID_LOCALIDAD = (SELECT localidad.ID_LOCALIDAD FROM MargeCreoQueOdioGDD.localidad WHERE localidad.NOMBRE = DIRECCION_USUARIO_LOCALIDAD)) AS ID_DIRECCION
 		FROM gd_esquema.Maestra
-		-- TODO: Falta controlar repetidos (por DNI? MAIL?)
+		WHERE USUARIO_MAIL NOT IN (SELECT EMAIL FROM MargeCreoQueOdioGDD.usuario)
 
 		PRINT '¡La migracion de USUARIOS finalizó con éxito!'
   END
@@ -938,7 +939,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
 												 END AS REPARTIDOR_LOCALIDAD)) AS ID_LOCALIDAD,
 			   (SELECT tipo_movilidad.ID_TIPO FROM tipo_movilidad WHERE tipo_movilidad.TIPO_MOVILIDAD = REPARTIDOR_TIPO_MOVILIDAD) AS ID_TIPO_MOVIMIENTO
 		FROM gd_esquema.Maestra
-		-- TODO: Falta controlar repetidos (por DNI? MAIL?)
+		WHERE REPARTIDOR_EMAIL NOT IN (SELECT EMAIL FROM MargeCreoQueOdioGDD.repartidor)
 
 		PRINT '¡La migracion de REPARTIDORES finalizó con éxito!'
   END
@@ -962,7 +963,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
 					 direccion.NUMERO = LTRIM(RIGHT(OPERADOR_RECLAMO_DIRECCION, 4))) AS ID_DIRECCION,
 			   OPERADOR_RECLAMO_TELEFONO AS TELEFONO
 		FROM gd_esquema.Maestra
-		-- TODO: Falta controlar repetidos (por DNI? MAIL?)
+		WHERE OPERADOR_RECLAMO_MAIL NOT IN (SELECT EMAIL FROM MargeCreoQueOdioGDD.operador)
 
 		PRINT '¡La migracion de OPERADORES finalizó con éxito!'
   END
@@ -979,7 +980,7 @@ EXEC MargeCreoQueOdioGDD.migrar_tipos_cupon;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_movilidad;
 EXEC MargeCreoQueOdioGDD.migrar_provincias;
 EXEC MargeCreoQueOdioGDD.migrar_localidades;
---EXEC MargeCreoQueOdioGDD.migrar_direcciones;
+EXEC MargeCreoQueOdioGDD.migrar_direcciones;
 EXEC MargeCreoQueOdioGDD.migrar_estados_pedido;
 EXEC MargeCreoQueOdioGDD.migrar_estados_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_estados_mensajeria;
