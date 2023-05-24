@@ -165,6 +165,21 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_tipo_reclamos
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_tipo_reclamos;
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_locales')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_locales;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_locales')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_locales;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_medios_de_pago')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_medios_de_pago;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_horarios_local')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_local;
+GO
 /*********************** Limpiar Schema ***********************/
 IF EXISTS (SELECT name FROM sys.schemas WHERE name = 'MargeCreoQueOdioGDD')
 BEGIN
@@ -198,7 +213,7 @@ ID_LOCAL INT IDENTITY(1,1), --PK
 NOMBRE NVARCHAR(255),
 DESCRIPCION NVARCHAR(255),
 ID_DIRECCION INT NOT NULL, --FK
-ID_CATEGORIA INT NOT NULL, --FK
+ID_CATEGORIA INT, --FK
 PRIMARY KEY (ID_LOCAL)
 );
 
@@ -217,9 +232,8 @@ PRIMARY KEY (ID_TIPO)
 
 CREATE TABLE MargeCreoQueOdioGDD.horario_local (
 ID_HORARIO_LOCAL INT IDENTITY(1,1), --PK
-DIA NVARCHAR(255),
-HORA_APERTURA TIME,
-HORA_CIERRE TIME,
+HORA_APERTURA DECIMAL,
+HORA_CIERRE DECIMAL,
 ID_LOCAL INT NOT NULL, --FK
 PRIMARY KEY (ID_HORARIO_LOCAL)
 );
@@ -257,13 +271,13 @@ PRIMARY KEY (NRO_PEDIDO)
 
 CREATE TABLE MargeCreoQueOdioGDD.productoxpedido (
 ID_PEDIDO INT NOT NULL, --FK
-ID_PRODUCTO INT NOT NULL, --FK
+ID_PRODUCTO NVARCHAR(255) NOT NULL, --FK
 CANTIDAD INT,
 PRECIO_UNITARIO FLOAT
 );
 
 CREATE TABLE MargeCreoQueOdioGDD.producto (
-CODIGO_PRODUCTO INT IDENTITY(1,1), --PK
+CODIGO_PRODUCTO NVARCHAR(255), --PK
 ID_LOCAL INT NOT NULL, --FK
 NOMBRE NVARCHAR(255),
 DESCRIPCION NVARCHAR(255),
@@ -645,13 +659,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_medio_pagos
   BEGIN
 	PRINT 'Se comienzan a migrar los tipos de medios de pagos...'
     INSERT INTO tipo_medio_pago(TIPO_PAGO)
-		SELECT DISTINCT Maestra.MEDIO_PAGO_TIPO
+		SELECT DISTINCT Maestra.MEDIO_PAGO_TIPO as TIPO_PAGO
 		FROM gd_esquema.Maestra
 		WHERE MEDIO_PAGO_TIPO IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.tipo_medio_pago; -- para ver lo que se migró
 ---------------------------- Tipo Reclamo ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_reclamos
  AS
@@ -663,8 +675,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_reclamos
 		WHERE RECLAMO_TIPO IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.tipo_reclamo;
 ---------------------------- Estado Reclamo ----------------------------
 
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_reclamos
@@ -677,8 +687,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_reclamos
 		WHERE RECLAMO_ESTADO IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.estado_reclamo;
 ---------------------------- Tipo Paquete ----------------------------
 
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_paquetes
@@ -691,8 +699,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_paquetes
 		WHERE PAQUETE_TIPO IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.tipo_paquete;
 ---------------------------- Estado Mensajeria ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_mensajeria
  AS
@@ -704,8 +710,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_mensajeria
 		WHERE ENVIO_MENSAJERIA_ESTADO IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.estado_mensajeria;
 ---------------------------- Dia ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_dias
  AS
@@ -717,8 +721,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_dias
 		WHERE HORARIO_LOCAL_DIA IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.dia;
 ---------------------------- Tipo Local ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
  AS
@@ -730,8 +732,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
 		WHERE LOCAL_TIPO IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.tipo_local;
 ---------------------------- Tipo Cupon ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon
  AS
@@ -752,8 +752,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon
 		WHERE TIPO_CUPON NOT IN (SELECT TIPO_CUPON FROM MargeCreoQueOdioGDD.tipo_cupon);
 	END;
 GO
-
---select * from MargeCreoQueOdioGDD.tipo_cupon;
 ---------------------------- Estado Pedido ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido
  AS
@@ -765,8 +763,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido
 		WHERE PEDIDO_ESTADO IS NOT NULL -- esto es raro o es un error, porque los datos que hay del estado del pedido dicen "envio mensajeria entregado", cuando es un pedido, no un envio mensajeria
 	END;
 GO
-
---select * from MargeCreoQueOdioGDD.estado_pedido;
 ---------------------------- Tipo Movilidad ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_movilidad
  AS
@@ -778,8 +774,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_movilidad
 		WHERE REPARTIDOR_TIPO_MOVILIDAD IS NOT NULL 
 	END;
 GO
-
---select * from MargeCreoQueOdioGDD.tipo_movilidad;
 ---------------------------- Provincia ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_provincias
 AS
@@ -804,8 +798,6 @@ AS
 		WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.provincia);
 	END;
 GO
-
---select * from MargeCreoQueOdioGDD.provincia;
 ---------------------------- Localidad ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
  AS
@@ -837,6 +829,7 @@ GO
 
 --select * from MargeCreoQueOdioGDD.localidad join MargeCreoQueOdioGDD.provincia on (localidad.ID_PROVINCIA = provincia.ID_PROVINCIA)
 ---------------------------- Direccion ----------------------------
+
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
  AS
   BEGIN
@@ -900,8 +893,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
 
   END
 GO
-
---select * from MargeCreoQueOdioGDD.direccion
 ---------------------------- Usuario ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
  AS
@@ -924,10 +915,8 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
 		PRINT '¡La migracion de USUARIOS finalizó con éxito!'
   END
 GO
-
---SELECT * FROM MargeCreoQueOdioGDD.usuario
 ---------------------------- Repartidor ----------------------------
-CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
+/*CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar los repartidores...'
@@ -978,9 +967,85 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
 
 		PRINT '¡La migracion de OPERADORES finalizó con éxito!'
   END
+GO*/
+---------------------------- Local ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_locales
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los locales...'
+    INSERT INTO local(NOMBRE, ID_CATEGORIA, DESCRIPCION, ID_DIRECCION)
+		SELECT DISTINCT LOCAL_NOMBRE AS NOMBRE,
+			   NULL AS ID_CATEGORIA,
+			   LOCAL_DESCRIPCION AS DESCRIPCION,
+			  (SELECT direccion.ID_DIRECCION FROM direccion 
+			   WHERE direccion.CALLE_Y_NUMERO = LOCAL_DIRECCION) AS ID_DIRECCION
+		FROM gd_esquema.Maestra
+		WHERE LOCAL_NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.local) AND LOCAL_DIRECCION IS NOT NULL
+
+		PRINT '¡La migracion de LOCALES finalizó con éxito!'
+  END
+GO
+---------------------------- Medio de Pago ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_medios_de_pago
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los medios_de_pago...'
+    INSERT INTO medio_de_pago(NUMERO_TARJETA, MARCA, ID_TIPO_MEDIO_PAGO, ID_USUARIO)
+		SELECT DISTINCT MEDIO_PAGO_NRO_TARJETA AS NUMERO_TARJETA,
+			   MARCA_TARJETA AS MARCA,
+			  (SELECT ID_TIPO FROM tipo_medio_pago
+			   WHERE TIPO_PAGO = MEDIO_PAGO_TIPO) AS ID_TIPO_MEDIO_PAGO,
+			  (SELECT usuario.ID_USUARIO FROM usuario
+			   WHERE usuario.EMAIL = USUARIO_MAIL AND usuario.DNI = USUARIO_DNI) AS ID_USUARIO
+		FROM gd_esquema.Maestra
+		WHERE MEDIO_PAGO_NRO_TARJETA NOT IN (SELECT NUMERO_TARJETA FROM MargeCreoQueOdioGDD.medio_de_pago) AND MEDIO_PAGO_TIPO IS NOT NULL
+		PRINT '¡La migracion de MEDIOS DE PAGO finalizó con éxito!'
+  END
+GO
+---------------------------- Horario Local ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_local
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los horarios de los locales...'
+    INSERT INTO horario_local(HORA_APERTURA, HORA_CIERRE, ID_LOCAL)
+		SELECT DISTINCT HORARIO_LOCAL_HORA_APERTURA AS HORA_APERTURA,
+		      HORARIO_LOCAL_HORA_CIERRE AS HORA_CIERRE,
+			  (SELECT ID_LOCAL FROM local
+			   WHERE NOMBRE = LOCAL_NOMBRE AND DESCRIPCION = LOCAL_DESCRIPCION) AS ID_LOCAL
+		FROM gd_esquema.Maestra
+		WHERE HORARIO_LOCAL_HORA_APERTURA IS NOT NULL AND HORARIO_LOCAL_HORA_CIERRE IS NOT NULL AND LOCAL_NOMBRE IS NOT NULL
+		PRINT '¡La migracion de HORARIOS DE LOCALES finalizó con éxito!'
+  END
 GO
 
---select * from MargeCreoQueOdioGDD.operador
+---------------------------- Producto ----------------------------
+
+/*ESTE ME TIRA ERROR SOBRE LAS PK DUPLICADAS, VER COMO SOLUCIONARLO*/
+
+/*CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_productos 
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los productos...'
+    INSERT INTO producto(CODIGO_PRODUCTO, ID_LOCAL, NOMBRE, DESCRIPCION, PRECIO)
+		SELECT DISTINCT PRODUCTO_LOCAL_CODIGO AS CODIGO_PRODUCTO,
+		      (SELECT ID_LOCAL FROM local
+			   WHERE NOMBRE = LOCAL_NOMBRE AND DESCRIPCION = LOCAL_DESCRIPCION) AS ID_LOCAL,
+			   PRODUCTO_LOCAL_NOMBRE AS NOMBRE,
+			   PRODUCTO_LOCAL_DESCRIPCION AS DESCRIPCION,
+			   PRODUCTO_LOCAL_PRECIO AS PRECIO
+		FROM gd_esquema.Maestra
+		WHERE /*PRODUCTO_LOCAL_CODIGO NOT IN (SELECT CODIGO_PRODUCTO FROM MargeCreoQueOdioGDD.producto) AND */LOCAL_NOMBRE IS NOT NULL AND PRODUCTO_LOCAL_CODIGO IS NOT NULL
+		PRINT '¡La migracion de PRODUCTOS finalizó con éxito!'
+  END
+GO
+
+SELECT * FROM MargeCreoQueOdioGDD.producto;
+
+exec MargeCreoQueOdioGDD.migrar_productos;
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_productos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_productos;
+GO*/
 /*********************** Realizamos la ejecución de los stores procedures ***********************/
 
 EXEC MargeCreoQueOdioGDD.migrar_tipos_medio_pagos;
@@ -997,5 +1062,8 @@ EXEC MargeCreoQueOdioGDD.migrar_estados_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_estados_mensajeria;
 EXEC MargeCreoQueOdioGDD.migrar_dias;
 EXEC MargeCreoQueOdioGDD.migrar_usuarios;
-EXEC MargeCreoQueOdioGDD.migrar_repartidores;
-EXEC MargeCreoQueOdioGDD.migrar_operadores;
+--EXEC MargeCreoQueOdioGDD.migrar_repartidores;
+--EXEC MargeCreoQueOdioGDD.migrar_operadores;
+EXEC MargeCreoQueOdioGDD.migrar_locales;
+EXEC MargeCreoQueOdioGDD.migrar_medios_de_pago;
+EXEC MargeCreoQueOdioGDD.migrar_horarios_local;
