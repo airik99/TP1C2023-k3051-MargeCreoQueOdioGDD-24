@@ -657,9 +657,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_medio_pagos
   BEGIN
 	PRINT 'Se comienzan a migrar los tipos de medios de pagos...'
     INSERT INTO tipo_medio_pago(TIPO_PAGO)
+
 		SELECT DISTINCT Maestra.MEDIO_PAGO_TIPO as TIPO_PAGO
 		FROM gd_esquema.Maestra
 		WHERE MEDIO_PAGO_TIPO IS NOT NULL
+
   END
 GO
 ---------------------------- Tipo Reclamo ----------------------------
@@ -668,9 +670,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_reclamos
   BEGIN
 	PRINT 'Se comienzan a migrar los tipos de reclamos...'
     INSERT INTO tipo_reclamo(TIPO_RECLAMO)
+
 		SELECT DISTINCT Maestra.RECLAMO_TIPO 
 		FROM gd_esquema.Maestra 
 		WHERE RECLAMO_TIPO IS NOT NULL
+
   END
 GO
 ---------------------------- Estado Reclamo ----------------------------
@@ -680,9 +684,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_reclamos
   BEGIN
 	PRINT 'Se comienzan a migrar los estados de los reclamos...'
     INSERT INTO estado_reclamo(NOMBRE)
+
 		SELECT DISTINCT Maestra.RECLAMO_ESTADO
 		FROM gd_esquema.Maestra 
 		WHERE RECLAMO_ESTADO IS NOT NULL
+
   END
 GO
 ---------------------------- Tipo Paquete ----------------------------
@@ -692,9 +698,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_paquetes
   BEGIN
 	PRINT 'Se comienzan a migrar los tipos de los paquetes...'
     INSERT INTO tipo_paquete(TIPO_PAQUETE, MEDIDA_ANCHO, MEDIDA_LARGO, MEDIDA_ALTO, PESO_MAXIMO, VALOR_ASEGURADO)
+
 		SELECT DISTINCT PAQUETE_TIPO, PAQUETE_ANCHO_MAX, PAQUETE_LARGO_MAX,PAQUETE_ALTO_MAX, PAQUETE_PESO_MAX, PAQUETE_TIPO_PRECIO
 		FROM gd_esquema.Maestra 
 		WHERE PAQUETE_TIPO IS NOT NULL
+
   END
 GO
 ---------------------------- Estado Mensajeria ----------------------------
@@ -703,9 +711,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_mensajeria
   BEGIN
 	PRINT 'Se comienzan a migrar los estados de los envios mensajeria...'
     INSERT INTO estado_mensajeria(NOMBRE)
+
 		SELECT DISTINCT ENVIO_MENSAJERIA_ESTADO
 		FROM gd_esquema.Maestra 
 		WHERE ENVIO_MENSAJERIA_ESTADO IS NOT NULL
+
   END
 GO
 ---------------------------- Dia ----------------------------
@@ -714,9 +724,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_dias
   BEGIN
 	PRINT 'Se comienzan a migrar los estados de los dias...'
     INSERT INTO dia(NOMBRE)
+
 		SELECT DISTINCT HORARIO_LOCAL_DIA
 		FROM gd_esquema.Maestra 
 		WHERE HORARIO_LOCAL_DIA IS NOT NULL
+
   END
 GO
 ---------------------------- Tipo Local ----------------------------
@@ -725,9 +737,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
   BEGIN
 	PRINT 'Se comienzan a migrar los estados de los tipos de los locales...'
     INSERT INTO tipo_local(NOMBRE)
+
 		SELECT DISTINCT LOCAL_TIPO
 		FROM gd_esquema.Maestra 
 		WHERE LOCAL_TIPO IS NOT NULL
+
   END
 GO
 ---------------------------- Tipo Cupon ----------------------------
@@ -736,29 +750,31 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon
   BEGIN
 		PRINT 'Se comienzan a migrar los tipos de los cupones...'
 		INSERT INTO tipo_cupon(TIPO_CUPON)
-		SELECT TIPO_CUPON
-		FROM
-		(
-		 SELECT CUPON_TIPO AS TIPO_CUPON
-		 FROM gd_esquema.Maestra
-			WHERE CUPON_TIPO IS NOT NULL
-		 UNION
-		 SELECT CUPON_RECLAMO_TIPO AS TIPO_CUPON
-		 FROM gd_esquema.Maestra
-			WHERE CUPON_RECLAMO_TIPO IS NOT NULL
-		) AS subquery
-		WHERE TIPO_CUPON NOT IN (SELECT TIPO_CUPON FROM MargeCreoQueOdioGDD.tipo_cupon);
-	END;
+
+		SELECT DISTINCT CUPON_TIPO AS TIPO_CUPON
+		FROM gd_esquema.Maestra
+		WHERE CUPON_TIPO IS NOT NULL --AND CUPON_TIPO NOT IN (SELECT TIPO_CUPON FROM MargeCreoQueOdioGDD.tipo_cupon)
+		UNION
+		SELECT DISTINCT CUPON_RECLAMO_TIPO AS TIPO_CUPON
+		FROM gd_esquema.Maestra
+		WHERE CUPON_RECLAMO_TIPO IS NOT NULL --AND CUPON_TIPO NOT IN (SELECT TIPO_CUPON FROM MargeCreoQueOdioGDD.tipo_cupon)
+		--WHERE TIPO_CUPON NOT IN (SELECT TIPO_CUPON FROM MargeCreoQueOdioGDD.tipo_cupon);
+
+	END
 GO
+
+--SELECT * FROM MargeCreoQueOdioGDD.tipo_cupon
 ---------------------------- Estado Pedido ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido
  AS
   BEGIN
 		PRINT 'Se comienzan a migrar los estados de los pedidos...'
 		INSERT INTO estado_pedido(NOMBRE)
+
 		SELECT DISTINCT PEDIDO_ESTADO
 		FROM gd_esquema.Maestra 
-		WHERE PEDIDO_ESTADO IS NOT NULL -- esto es raro o es un error, porque los datos que hay del estado del pedido dicen "envio mensajeria entregado", cuando es un pedido, no un envio mensajeria
+		WHERE PEDIDO_ESTADO IS NOT NULL -- TODO: esto es raro o es un error, porque los datos que hay del estado del pedido dicen "envio mensajeria entregado", cuando es un pedido, no un envio mensajeria
+	
 	END;
 GO
 
@@ -768,9 +784,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_movilidad
   BEGIN
 		PRINT 'Se comienzan a migrar los tipos de movilidad de los repartidores...'
 		INSERT INTO tipo_movilidad(TIPO_MOVILIDAD)
+
 		SELECT DISTINCT REPARTIDOR_TIPO_MOVILIDAD
 		FROM gd_esquema.Maestra 
-		WHERE REPARTIDOR_TIPO_MOVILIDAD IS NOT NULL 
+		WHERE REPARTIDOR_TIPO_MOVILIDAD IS NOT NULL
+
 	END;
 GO
 ---------------------------- Provincia ----------------------------
@@ -779,25 +797,24 @@ AS
 	BEGIN
 		PRINT 'Se comienzan a migrar las provincias...'
 		INSERT INTO MargeCreoQueOdioGDD.provincia (NOMBRE)
-		SELECT NOMBRE
-		FROM
-		(
-		 SELECT ENVIO_MENSAJERIA_PROVINCIA AS NOMBRE
-		 FROM gd_esquema.Maestra
-			WHERE ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL
-		 UNION
-		 SELECT DIRECCION_USUARIO_PROVINCIA AS NOMBRE
-		 FROM gd_esquema.Maestra
-			WHERE DIRECCION_USUARIO_PROVINCIA IS NOT NULL
-		 UNION
-		 SELECT LOCAL_PROVINCIA AS NOMBRE
-		 FROM gd_esquema.Maestra
-			 WHERE LOCAL_PROVINCIA IS NOT NULL
-		) AS subquery
-		WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.provincia);
+
+		SELECT DISTINCT ENVIO_MENSAJERIA_PROVINCIA AS NOMBRE
+		FROM gd_esquema.Maestra
+		WHERE ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL
+		UNION
+		SELECT DISTINCT DIRECCION_USUARIO_PROVINCIA AS NOMBRE
+		FROM gd_esquema.Maestra
+		WHERE DIRECCION_USUARIO_PROVINCIA IS NOT NULL
+		UNION
+		SELECT DISTINCT LOCAL_PROVINCIA AS NOMBRE
+		FROM gd_esquema.Maestra
+		WHERE LOCAL_PROVINCIA IS NOT NULL
+		--WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.provincia);
 
 	END;
 GO
+
+--SELECT * FROM MargeCreoQueOdioGDD.provincia
 ---------------------------- Localidad ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
  AS
@@ -805,27 +822,26 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
 	PRINT 'Se comienzan a migrar las localidades...'
     INSERT INTO localidad (NOMBRE, ID_PROVINCIA)
 
-		SELECT DISTINCT(NOMBRE), ID_PROVINCIA
-		FROM
-		(SELECT DISTINCT(ENVIO_MENSAJERIA_LOCALIDAD) AS NOMBRE,
-				(SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.ENVIO_MENSAJERIA_PROVINCIA) AS ID_PROVINCIA
-		 FROM gd_esquema.Maestra
-		 WHERE ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL
-		 UNION
-		 SELECT DISTINCT(DIRECCION_USUARIO_LOCALIDAD) AS NOMBRE,
-				(SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.DIRECCION_USUARIO_PROVINCIA) AS ID_PROVINCIA
-		 FROM gd_esquema.Maestra
-		 WHERE DIRECCION_USUARIO_LOCALIDAD IS NOT NULL
-		 UNION
-		 SELECT DISTINCT(LOCAL_LOCALIDAD) AS NOMBRE,
-				(SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.LOCAL_PROVINCIA) AS ID_PROVINCIA
-		 FROM gd_esquema.Maestra
-		 WHERE LOCAL_LOCALIDAD IS NOT NULL) AS subquery
-		 WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.localidad)
+		SELECT DISTINCT ENVIO_MENSAJERIA_LOCALIDAD AS NOMBRE,
+			   (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.ENVIO_MENSAJERIA_PROVINCIA) AS ID_PROVINCIA
+		FROM gd_esquema.Maestra
+		WHERE ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL
+		UNION
+		SELECT DISTINCT DIRECCION_USUARIO_LOCALIDAD AS NOMBRE,
+			   (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.DIRECCION_USUARIO_PROVINCIA) AS ID_PROVINCIA
+		FROM gd_esquema.Maestra
+		WHERE DIRECCION_USUARIO_LOCALIDAD IS NOT NULL
+		UNION
+		SELECT DISTINCT LOCAL_LOCALIDAD AS NOMBRE,
+			   (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = Maestra.LOCAL_PROVINCIA) AS ID_PROVINCIA
+		FROM gd_esquema.Maestra
+		WHERE LOCAL_LOCALIDAD IS NOT NULL
+		 --WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.localidad)
 
   END
 GO
 
+--select * from MargeCreoQueOdioGDD.localidad
 --select * from MargeCreoQueOdioGDD.localidad join MargeCreoQueOdioGDD.provincia on (localidad.ID_PROVINCIA = provincia.ID_PROVINCIA)
 ---------------------------- Direccion ----------------------------
 
@@ -833,67 +849,65 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar las direcciones...'
-
     INSERT INTO direccion (ID_LOCALIDAD, NOMBRE_DIRECCION, CALLE_Y_NUMERO)
-
-		SELECT ID_LOCALIDAD, NOMBRE_DIRECCION, CALLE_Y_NUMERO
-		FROM (SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad 
-					  WHERE localidad.NOMBRE = Maestra.DIRECCION_USUARIO_LOCALIDAD AND
-					  localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = DIRECCION_USUARIO_PROVINCIA)) AS ID_LOCALIDAD,
-					 Maestra.DIRECCION_USUARIO_NOMBRE AS NOMBRE_DIRECCION,
-					 Maestra.DIRECCION_USUARIO_DIRECCION AS CALLE_Y_NUMERO
-			  FROM gd_esquema.Maestra
-			  WHERE DIRECCION_USUARIO_DIRECCION IS NOT NULL
-			  UNION
-			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad 
-					  WHERE localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD AND
-					  localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = ENVIO_MENSAJERIA_PROVINCIA)) AS ID_LOCALIDAD,
-					  '' AS NOMBRE_DIRECCION,
-					  ENVIO_MENSAJERIA_DIR_ORIG AS CALLE_Y_NUMERO
-			  FROM gd_esquema.Maestra
-			  WHERE ENVIO_MENSAJERIA_DIR_ORIG IS NOT NULL
-			  UNION
-			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad 
-					  WHERE localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD AND
-					  localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = ENVIO_MENSAJERIA_PROVINCIA)) AS ID_LOCALIDAD,
-					  '' AS NOMBRE_DIRECCION,
-					  ENVIO_MENSAJERIA_DIR_DEST AS CALLE_Y_NUMERO
-			  FROM gd_esquema.Maestra
-			  WHERE ENVIO_MENSAJERIA_DIR_DEST IS NOT NULL
-			  UNION
-			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad 
-					  WHERE localidad.NOMBRE = LOCAL_LOCALIDAD AND
-					  localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = LOCAL_PROVINCIA)) AS ID_LOCALIDAD,
-					 '' AS NOMBRE_DIRECCION,
-					 OPERADOR_RECLAMO_DIRECCION AS CALLE_Y_NUMERO
-			  FROM gd_esquema.Maestra
-			  WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL --AND LOCAL_LOCALIDAD IS NOT NULL
-			  UNION
-			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad
-					  WHERE localidad.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL THEN ENVIO_MENSAJERIA_LOCALIDAD
-															WHEN LOCAL_LOCALIDAD IS NOT NULL THEN LOCAL_LOCALIDAD
-													   END)
-					   AND localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL THEN ENVIO_MENSAJERIA_PROVINCIA
-																																		WHEN LOCAL_PROVINCIA IS NOT NULL THEN LOCAL_PROVINCIA
-																																   END))) AS ID_LOCALIDAD,
-					 '' AS NOMBRE_DIRECCION,
-					 REPARTIDOR_DIRECION AS CALLE_Y_NUMERO
-			  FROM gd_esquema.Maestra
-			  WHERE REPARTIDOR_DIRECION IS NOT NULL
-			  UNION
-			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad 
-					  WHERE localidad.NOMBRE = LOCAL_LOCALIDAD AND
-					  localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = LOCAL_PROVINCIA)) AS ID_LOCALIDAD,
-					  '' AS NOMBRE_DIRECCION,
-					  LOCAL_DIRECCION AS CALLE_Y_NUMERO
-			  FROM gd_esquema.Maestra
-			  WHERE LOCAL_DIRECCION IS NOT NULL) AS subquery
-		WHERE CALLE_Y_NUMERO NOT IN (SELECT CALLE_Y_NUMERO FROM MargeCreoQueOdioGDD.direccion)
+	
+		SELECT DISTINCT (SELECT localidad.ID_LOCALIDAD FROM localidad 
+			   WHERE localidad.NOMBRE = Maestra.DIRECCION_USUARIO_LOCALIDAD AND
+			   localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = DIRECCION_USUARIO_PROVINCIA)) AS ID_LOCALIDAD,
+			   Maestra.DIRECCION_USUARIO_NOMBRE AS NOMBRE_DIRECCION,
+			   Maestra.DIRECCION_USUARIO_DIRECCION AS CALLE_Y_NUMERO
+		FROM gd_esquema.Maestra
+		WHERE DIRECCION_USUARIO_DIRECCION IS NOT NULL
+		UNION
+		SELECT DISTINCT (SELECT localidad.ID_LOCALIDAD FROM localidad 
+			   WHERE localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD AND
+			   localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = ENVIO_MENSAJERIA_PROVINCIA)) AS ID_LOCALIDAD,
+			   '' AS NOMBRE_DIRECCION,
+			   ENVIO_MENSAJERIA_DIR_ORIG AS CALLE_Y_NUMERO
+		FROM gd_esquema.Maestra
+		WHERE ENVIO_MENSAJERIA_DIR_ORIG IS NOT NULL
+		UNION
+		SELECT DISTINCT (SELECT localidad.ID_LOCALIDAD FROM localidad 
+			   WHERE localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD AND
+			   localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = ENVIO_MENSAJERIA_PROVINCIA)) AS ID_LOCALIDAD,
+			   '' AS NOMBRE_DIRECCION,
+			   ENVIO_MENSAJERIA_DIR_DEST AS CALLE_Y_NUMERO
+		FROM gd_esquema.Maestra
+		WHERE ENVIO_MENSAJERIA_DIR_DEST IS NOT NULL
+		UNION
+		SELECT DISTINCT (SELECT localidad.ID_LOCALIDAD FROM localidad 
+			   WHERE localidad.NOMBRE = LOCAL_LOCALIDAD AND
+			   localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = LOCAL_PROVINCIA)) AS ID_LOCALIDAD,
+			   '' AS NOMBRE_DIRECCION,
+			   OPERADOR_RECLAMO_DIRECCION AS CALLE_Y_NUMERO
+		FROM gd_esquema.Maestra
+		WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL --AND LOCAL_LOCALIDAD IS NOT NULL
+		UNION
+		SELECT DISTINCT (SELECT localidad.ID_LOCALIDAD FROM localidad
+			   WHERE localidad.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL THEN ENVIO_MENSAJERIA_LOCALIDAD
+		   										     WHEN LOCAL_LOCALIDAD IS NOT NULL THEN LOCAL_LOCALIDAD
+												END)
+			   AND localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL THEN ENVIO_MENSAJERIA_PROVINCIA
+																																WHEN LOCAL_PROVINCIA IS NOT NULL THEN LOCAL_PROVINCIA
+																														   END))) AS ID_LOCALIDAD,
+			   '' AS NOMBRE_DIRECCION,
+			   REPARTIDOR_DIRECION AS CALLE_Y_NUMERO
+		FROM gd_esquema.Maestra
+		WHERE REPARTIDOR_DIRECION IS NOT NULL
+		UNION
+		SELECT DISTINCT (SELECT localidad.ID_LOCALIDAD FROM localidad 
+			   WHERE localidad.NOMBRE = LOCAL_LOCALIDAD AND
+			   localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = LOCAL_PROVINCIA)) AS ID_LOCALIDAD,
+			   '' AS NOMBRE_DIRECCION,
+			   LOCAL_DIRECCION AS CALLE_Y_NUMERO
+		FROM gd_esquema.Maestra
+		WHERE LOCAL_DIRECCION IS NOT NULL
+		--WHERE CALLE_Y_NUMERO NOT IN (SELECT CALLE_Y_NUMERO FROM MargeCreoQueOdioGDD.direccion)
 
   END
 GO
 
---selec * from MargeCreoQueOdioGDD.direccion
+--select * from MargeCreoQueOdioGDD.direccion
 ---------------------------- Usuario ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
  AS
@@ -983,6 +997,7 @@ AS
   BEGIN
 	PRINT 'Se comienzan a migrar los locales...'
     INSERT INTO local(NOMBRE, ID_CATEGORIA, DESCRIPCION, ID_DIRECCION)
+
 		SELECT DISTINCT LOCAL_NOMBRE AS NOMBRE,
 			   NULL AS ID_CATEGORIA,
 			   LOCAL_DESCRIPCION AS DESCRIPCION,
@@ -999,6 +1014,7 @@ AS
   BEGIN
 	PRINT 'Se comienzan a migrar los medios_de_pago...'
     INSERT INTO medio_de_pago(NUMERO_TARJETA, MARCA, ID_TIPO_MEDIO_PAGO, ID_USUARIO)
+
 		SELECT DISTINCT MEDIO_PAGO_NRO_TARJETA AS NUMERO_TARJETA,
 			   MARCA_TARJETA AS MARCA,
 			  (SELECT ID_TIPO FROM tipo_medio_pago
@@ -1016,6 +1032,7 @@ AS
   BEGIN
 	PRINT 'Se comienzan a migrar los horarios de los locales...'
     INSERT INTO horario_local(HORA_APERTURA, HORA_CIERRE, ID_LOCAL)
+
 		SELECT DISTINCT HORARIO_LOCAL_HORA_APERTURA AS HORA_APERTURA,
 		      HORARIO_LOCAL_HORA_CIERRE AS HORA_CIERRE,
 			  (SELECT ID_LOCAL FROM local
