@@ -413,7 +413,6 @@ NOMBRE NVARCHAR(255) NOT NULL,
 PRIMARY KEY (ID_ESTADO)
 );
 
-
 CREATE TABLE MargeCreoQueOdioGDD.tipo_paquete (
 ID_TIPO_PAQUETE INT IDENTITY(1,1), --PK
 TIPO_PAQUETE NVARCHAR(255),
@@ -424,7 +423,6 @@ PESO_MAXIMO FLOAT,
 VALOR_ASEGURADO FLOAT,
 PRIMARY KEY(ID_TIPO_PAQUETE)
 );
-
 
 -------------------------- RECLAMO --------------------------
 CREATE TABLE MargeCreoQueOdioGDD.reclamo (
@@ -763,6 +761,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido
 		WHERE PEDIDO_ESTADO IS NOT NULL -- esto es raro o es un error, porque los datos que hay del estado del pedido dicen "envio mensajeria entregado", cuando es un pedido, no un envio mensajeria
 	END;
 GO
+
 ---------------------------- Tipo Movilidad ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_movilidad
  AS
@@ -796,6 +795,7 @@ AS
 			 WHERE LOCAL_PROVINCIA IS NOT NULL
 		) AS subquery
 		WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.provincia);
+
 	END;
 GO
 ---------------------------- Localidad ----------------------------
@@ -823,7 +823,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
 		 WHERE LOCAL_LOCALIDAD IS NOT NULL) AS subquery
 		 WHERE NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.localidad)
 
-		PRINT '¡La migracion de LOCALIDADES finalizó con éxito!'
   END
 GO
 
@@ -868,17 +867,19 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
 					 '' AS NOMBRE_DIRECCION,
 					 OPERADOR_RECLAMO_DIRECCION AS CALLE_Y_NUMERO
 			  FROM gd_esquema.Maestra
-			  WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL
+			  WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL --AND LOCAL_LOCALIDAD IS NOT NULL
 			  UNION
 			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad
 					  WHERE localidad.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL THEN ENVIO_MENSAJERIA_LOCALIDAD
 															WHEN LOCAL_LOCALIDAD IS NOT NULL THEN LOCAL_LOCALIDAD
-													   END AS REPARTIDOR_LOCALIDAD)
-					   AND localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = LOCAL_PROVINCIA)) AS ID_LOCALIDAD,
+													   END)
+					   AND localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL THEN ENVIO_MENSAJERIA_PROVINCIA
+																																		WHEN LOCAL_PROVINCIA IS NOT NULL THEN LOCAL_PROVINCIA
+																																   END))) AS ID_LOCALIDAD,
 					 '' AS NOMBRE_DIRECCION,
 					 REPARTIDOR_DIRECION AS CALLE_Y_NUMERO
 			  FROM gd_esquema.Maestra
-			  WHERE OPERADOR_RECLAMO_DIRECCION IS NOT NULL
+			  WHERE REPARTIDOR_DIRECION IS NOT NULL
 			  UNION
 			  SELECT (SELECT localidad.ID_LOCALIDAD FROM localidad 
 					  WHERE localidad.NOMBRE = LOCAL_LOCALIDAD AND
@@ -888,11 +889,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
 			  FROM gd_esquema.Maestra
 			  WHERE LOCAL_DIRECCION IS NOT NULL) AS subquery
 		WHERE CALLE_Y_NUMERO NOT IN (SELECT CALLE_Y_NUMERO FROM MargeCreoQueOdioGDD.direccion)
-		
-		PRINT '¡La migracion de DIRECCIONES finalizó con éxito!'
 
   END
 GO
+
+--selec * from MargeCreoQueOdioGDD.direccion
 ---------------------------- Usuario ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
  AS
@@ -912,11 +913,10 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
 		FROM gd_esquema.Maestra
 		WHERE USUARIO_MAIL NOT IN (SELECT EMAIL FROM MargeCreoQueOdioGDD.usuario) AND DIRECCION_USUARIO_DIRECCION IS NOT NULL
 
-		PRINT '¡La migracion de USUARIOS finalizó con éxito!'
   END
 GO
 ---------------------------- Repartidor ----------------------------
-/*CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar los repartidores...'
@@ -927,7 +927,14 @@ GO
 			   REPARTIDOR_DNI AS DNI,
 			   REPARTIDOR_TELEFONO AS TELEFONO,
 			   REPARTIDOR_EMAIL AS EMAIL,
-			   (SELECT direccion.ID_DIRECCION FROM direccion WHERE direccion.CALLE_Y_NUMERO = REPARTIDOR_DIRECION) AS ID_DIRECCION,
+			   (SELECT direccion.ID_DIRECCION FROM direccion WHERE direccion.CALLE_Y_NUMERO = REPARTIDOR_DIRECION AND
+															 direccion.ID_LOCALIDAD = (SELECT localidad.ID_LOCALIDAD FROM localidad
+																					   WHERE localidad.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL THEN ENVIO_MENSAJERIA_LOCALIDAD
+																															 WHEN LOCAL_LOCALIDAD IS NOT NULL THEN LOCAL_LOCALIDAD
+																														END) AND localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia 
+																																						   WHERE provincia.NOMBRE = (CASE WHEN ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL THEN ENVIO_MENSAJERIA_PROVINCIA
+																																														  WHEN LOCAL_PROVINCIA IS NOT NULL THEN LOCAL_PROVINCIA
+																																													 END)))) AS ID_DIRECCION,
 			   REPARTIDOR_FECHA_NAC AS FECHA_NACIMIENTO,
 			   (SELECT localidad.ID_LOCALIDAD FROM localidad
 				WHERE localidad.NOMBRE = (SELECT CASE WHEN ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL THEN ENVIO_MENSAJERIA_LOCALIDAD
@@ -935,13 +942,12 @@ GO
 												 END)
 				AND localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia 
 											  WHERE provincia.NOMBRE = (CASE WHEN ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL THEN ENVIO_MENSAJERIA_PROVINCIA
-																			WHEN LOCAL_PROVINCIA IS NOT NULL THEN LOCAL_PROVINCIA
-																	   END))) AS ID_LOCALIDAD,
+																			 WHEN LOCAL_PROVINCIA IS NOT NULL THEN LOCAL_PROVINCIA
+																		END))) AS ID_LOCALIDAD,
 			   (SELECT tipo_movilidad.ID_TIPO FROM tipo_movilidad WHERE tipo_movilidad.TIPO_MOVILIDAD = REPARTIDOR_TIPO_MOVILIDAD) AS ID_TIPO_MOVIMIENTO
 		FROM gd_esquema.Maestra
 		WHERE REPARTIDOR_EMAIL NOT IN (SELECT EMAIL FROM MargeCreoQueOdioGDD.repartidor)
 
-		PRINT '¡La migracion de REPARTIDORES finalizó con éxito!'
   END
 GO
 
@@ -959,15 +965,18 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
 			   OPERADOR_RECLAMO_FECHA_NAC AS FECHA_NACIMIENTO,
 			   OPERADOR_RECLAMO_MAIL AS EMAIL,
 			   (SELECT direccion.ID_DIRECCION FROM direccion 
-			   WHERE direccion.CALLE_Y_NUMERO = OPERADOR_RECLAMO_DIRECCION) AS ID_DIRECCION,
+			   WHERE direccion.CALLE_Y_NUMERO = OPERADOR_RECLAMO_DIRECCION AND
+			   direccion.ID_LOCALIDAD = (SELECT localidad.ID_LOCALIDAD FROM localidad WHERE localidad.NOMBRE = LOCAL_LOCALIDAD AND
+										localidad.ID_PROVINCIA = (SELECT provincia.ID_PROVINCIA FROM provincia WHERE provincia.NOMBRE = LOCAL_PROVINCIA))) AS ID_DIRECCION,
 			   OPERADOR_RECLAMO_TELEFONO AS TELEFONO
 		FROM gd_esquema.Maestra
 		WHERE OPERADOR_RECLAMO_MAIL NOT IN (SELECT EMAIL FROM MargeCreoQueOdioGDD.operador) AND
 			  OPERADOR_RECLAMO_NOMBRE IS NOT NULL AND OPERADOR_RECLAMO_APELLIDO IS NOT NULL
 
-		PRINT '¡La migracion de OPERADORES finalizó con éxito!'
   END
-GO*/
+GO
+
+--select * from MargeCreoQueOdioGDD.operador
 ---------------------------- Local ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_locales
 AS
@@ -982,7 +991,6 @@ AS
 		FROM gd_esquema.Maestra
 		WHERE LOCAL_NOMBRE NOT IN (SELECT NOMBRE FROM MargeCreoQueOdioGDD.local) AND LOCAL_DIRECCION IS NOT NULL
 
-		PRINT '¡La migracion de LOCALES finalizó con éxito!'
   END
 GO
 ---------------------------- Medio de Pago ----------------------------
@@ -999,7 +1007,7 @@ AS
 			   WHERE usuario.EMAIL = USUARIO_MAIL AND usuario.DNI = USUARIO_DNI) AS ID_USUARIO
 		FROM gd_esquema.Maestra
 		WHERE MEDIO_PAGO_NRO_TARJETA NOT IN (SELECT NUMERO_TARJETA FROM MargeCreoQueOdioGDD.medio_de_pago) AND MEDIO_PAGO_TIPO IS NOT NULL
-		PRINT '¡La migracion de MEDIOS DE PAGO finalizó con éxito!'
+
   END
 GO
 ---------------------------- Horario Local ----------------------------
@@ -1014,15 +1022,15 @@ AS
 			   WHERE NOMBRE = LOCAL_NOMBRE AND DESCRIPCION = LOCAL_DESCRIPCION) AS ID_LOCAL
 		FROM gd_esquema.Maestra
 		WHERE HORARIO_LOCAL_HORA_APERTURA IS NOT NULL AND HORARIO_LOCAL_HORA_CIERRE IS NOT NULL AND LOCAL_NOMBRE IS NOT NULL
-		PRINT '¡La migracion de HORARIOS DE LOCALES finalizó con éxito!'
+
   END
 GO
 
 ---------------------------- Producto ----------------------------
 
 /*ESTE ME TIRA ERROR SOBRE LAS PK DUPLICADAS, VER COMO SOLUCIONARLO*/
-
-/*CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_productos 
+/*
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_productos 
 AS
   BEGIN
 	PRINT 'Se comienzan a migrar los productos...'
@@ -1034,8 +1042,9 @@ AS
 			   PRODUCTO_LOCAL_DESCRIPCION AS DESCRIPCION,
 			   PRODUCTO_LOCAL_PRECIO AS PRECIO
 		FROM gd_esquema.Maestra
-		WHERE /*PRODUCTO_LOCAL_CODIGO NOT IN (SELECT CODIGO_PRODUCTO FROM MargeCreoQueOdioGDD.producto) AND */LOCAL_NOMBRE IS NOT NULL AND PRODUCTO_LOCAL_CODIGO IS NOT NULL
-		PRINT '¡La migracion de PRODUCTOS finalizó con éxito!'
+		WHERE --PRODUCTO_LOCAL_CODIGO NOT IN (SELECT CODIGO_PRODUCTO FROM MargeCreoQueOdioGDD.producto) AND
+		LOCAL_NOMBRE IS NOT NULL AND PRODUCTO_LOCAL_CODIGO IS NOT NULL
+
   END
 GO
 
@@ -1045,7 +1054,8 @@ exec MargeCreoQueOdioGDD.migrar_productos;
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_productos')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_productos;
-GO*/
+GO
+*/
 /*********************** Realizamos la ejecución de los stores procedures ***********************/
 
 EXEC MargeCreoQueOdioGDD.migrar_tipos_medio_pagos;
@@ -1062,8 +1072,8 @@ EXEC MargeCreoQueOdioGDD.migrar_estados_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_estados_mensajeria;
 EXEC MargeCreoQueOdioGDD.migrar_dias;
 EXEC MargeCreoQueOdioGDD.migrar_usuarios;
---EXEC MargeCreoQueOdioGDD.migrar_repartidores;
---EXEC MargeCreoQueOdioGDD.migrar_operadores;
+EXEC MargeCreoQueOdioGDD.migrar_repartidores;
+EXEC MargeCreoQueOdioGDD.migrar_operadores;
 EXEC MargeCreoQueOdioGDD.migrar_locales;
 EXEC MargeCreoQueOdioGDD.migrar_medios_de_pago;
 EXEC MargeCreoQueOdioGDD.migrar_horarios_local;
