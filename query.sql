@@ -1026,6 +1026,7 @@ EXEC MargeCreoQueOdioGDD.migrar_operadores;
 EXEC MargeCreoQueOdioGDD.migrar_locales;
 EXEC MargeCreoQueOdioGDD.migrar_medios_de_pago;
 EXEC MargeCreoQueOdioGDD.migrar_horarios_local;
+EXEC MargeCreoQueOdioGDD.migrar_envios;
 --EXEC MargeCreoQueOdioGDD.migrar_pedidos
 --EXEC MargeCreoQueOdioGDD.migrar_envios_mensajeria;
 --EXEC MargeCreoQueOdioGDD.migrar_reclamos;
