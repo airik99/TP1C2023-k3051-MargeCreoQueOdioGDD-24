@@ -185,6 +185,10 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_envios')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_envios;
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_productos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_productos;
+GO
+
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_envios_mensajeria')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_envios_mensajeria;
 GO
@@ -806,23 +810,21 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_cupones_descuento
 		INSERT INTO cupon_descuento(CODIGO, ID_USUARIO, MONTO, ID_TIPO_CUPON, FECHA_ALTA, FECHA_VENCIMIENTO)
 
 		SELECT DISTINCT CUPON_NRO AS CODIGO,
-			   usuario.ID_USUARIO AS ID_USUARIO,
+			   (SELECT TOP 1 ID_USUARIO FROM MargeCreoQueOdioGDD.usuario WHERE usuario.DNI = USUARIO_DNI) AS ID_USUARIO,
 			   CUPON_MONTO AS MONTO,
 			   (SELECT tipo_cupon.ID_TIPO FROM MargeCreoQueOdioGDD.tipo_cupon WHERE tipo_cupon.TIPO_CUPON = CUPON_TIPO) AS ID_TIPO_CUPON,
 			   CUPON_FECHA_ALTA AS FECHA_ALTA,
 			   CUPON_FECHA_VENCIMIENTO AS FECHA_VENCIMIENTO
 		FROM gd_esquema.Maestra
-		INNER JOIN MargeCreoQueOdioGDD.usuario ON (usuario.NOMBRE = USUARIO_NOMBRE AND usuario.APELLIDO = USUARIO_APELLIDO AND usuario.EMAIL = USUARIO_MAIL AND usuario.DNI = USUARIO_DNI)
-		WHERE CUPON_NRO IS NOT NULL
+        WHERE CUPON_NRO IS NOT NULL
 		UNION
 		SELECT DISTINCT CUPON_RECLAMO_NRO AS CODIGO,
-			   usuario.ID_USUARIO AS ID_USUARIO,
+			   (SELECT TOP 1 ID_USUARIO FROM MargeCreoQueOdioGDD.usuario WHERE usuario.DNI = USUARIO_DNI) AS ID_USUARIO,
 			   CUPON_RECLAMO_MONTO AS MONTO,
 			   (SELECT tipo_cupon.ID_TIPO FROM MargeCreoQueOdioGDD.tipo_cupon WHERE tipo_cupon.TIPO_CUPON = CUPON_RECLAMO_TIPO) AS ID_TIPO_CUPON,
 			   CUPON_RECLAMO_FECHA_ALTA AS FECHA_ALTA,
 			   CUPON_RECLAMO_FECHA_VENCIMIENTO AS FECHA_VENCIMIENTO
 		FROM gd_esquema.Maestra
-		INNER JOIN MargeCreoQueOdioGDD.usuario ON (usuario.NOMBRE = USUARIO_NOMBRE AND usuario.APELLIDO = USUARIO_APELLIDO AND usuario.EMAIL = USUARIO_MAIL AND usuario.DNI = USUARIO_DNI)
 		WHERE CUPON_RECLAMO_NRO IS NOT NULL
 
 	END
@@ -835,14 +837,10 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_pedido
   BEGIN
 		PRINT 'Se comienzan a migrar los descuentos por pedido...'
 		INSERT INTO descuentoxpedido(ID_PEDIDO, ID_CUPON)
-
-		SELECT DISTINCT pedido.NRO_PEDIDO AS ID_PEDIDO,
-			   cupon_descuento.CODIGO AS ID_CUPON
+		SELECT DISTINCT (SELECT TOP 1 NRO_PEDIDO FROM MargeCreoQueOdioGDD.pedido WHERE pedido.NRO_PEDIDO = PEDIDO_NRO) AS ID_PEDIDO,
+			            (SELECT TOP 1 CODIGO FROM MargeCreoQueOdioGDD.cupon_descuento WHERE cupon_descuento.CODIGO = CUPON_NRO) AS ID_CUPON
 		FROM gd_esquema.Maestra
-		INNER JOIN MargeCreoQueOdioGDD.cupon_descuento ON (cupon_descuento.CODIGO = CUPON_NRO AND cupon_descuento.FECHA_ALTA = CUPON_RECLAMO_FECHA_ALTA AND cupon_descuento.FECHA_VENCIMIENTO = CUPON_RECLAMO_FECHA_VENCIMIENTO AND cupon_descuento.MONTO = CUPON_RECLAMO_MONTO)
-		INNER JOIN MargeCreoQueOdioGDD.usuario ON (usuario.ID_USUARIO = cupon_descuento.ID_USUARIO)
-		INNER JOIN MargeCreoQueOdioGDD.pedido ON (pedido.ID_USUARIO = usuario.ID_USUARIO)
-		WHERE CUPON_NRO IS NOT NULL AND NRO_PEDIDO IS NOT NULL
+		WHERE CUPON_NRO IS NOT NULL AND PEDIDO_NRO IS NOT NULL
 
 	END
 GO
@@ -854,15 +852,10 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo
   BEGIN
 		PRINT 'Se comienzan a migrar los descuentos por reclamo...'
 		INSERT INTO descuentoxreclamo(ID_RECLAMO, ID_CUPON)
-
-		SELECT DISTINCT reclamo.NRO_RECLAMO AS ID_RECLAMO,
-			   cupon_descuento.CODIGO AS ID_CUPON
+		SELECT DISTINCT (SELECT TOP 1 NRO_RECLAMO FROM MargeCreoQueOdioGDD.reclamo WHERE reclamo.NRO_RECLAMO = RECLAMO_NRO) AS ID_RECLAMO,
+			            (SELECT TOP 1 CODIGO FROM MargeCreoQueOdioGDD.cupon_descuento WHERE cupon_descuento.CODIGO = CUPON_NRO) AS ID_CUPON
 		FROM gd_esquema.Maestra
-		INNER JOIN MargeCreoQueOdioGDD.cupon_descuento ON (cupon_descuento.CODIGO = CUPON_NRO AND cupon_descuento.FECHA_ALTA = CUPON_RECLAMO_FECHA_ALTA AND cupon_descuento.FECHA_VENCIMIENTO = CUPON_RECLAMO_FECHA_VENCIMIENTO AND cupon_descuento.MONTO = CUPON_RECLAMO_MONTO)
-		INNER JOIN MargeCreoQueOdioGDD.usuario ON (usuario.ID_USUARIO = cupon_descuento.ID_USUARIO)
-		INNER JOIN MargeCreoQueOdioGDD.reclamo ON (reclamo.ID_USUARIO = usuario.ID_USUARIO)
 		WHERE CUPON_NRO IS NOT NULL AND RECLAMO_NRO IS NOT NULL
-
 	END
 GO
 
@@ -1060,16 +1053,13 @@ AS
   BEGIN
 	PRINT 'Se comienzan a migrar los productos...'
     INSERT INTO producto(CODIGO_PRODUCTO, ID_LOCAL, NOMBRE, DESCRIPCION, PRECIO)
-
 		SELECT DISTINCT PRODUCTO_LOCAL_CODIGO AS CODIGO_PRODUCTO,
-		       ID_LOCAL AS ID_LOCAL,
+		       (SELECT TOP 1 ID_LOCAL FROM MargeCreoQueOdioGDD.local WHERE local.NOMBRE = LOCAL_NOMBRE) AS ID_LOCAL,
 			   PRODUCTO_LOCAL_NOMBRE AS NOMBRE,
 			   PRODUCTO_LOCAL_DESCRIPCION AS DESCRIPCION,
 			   PRODUCTO_LOCAL_PRECIO AS PRECIO
 		FROM gd_esquema.Maestra
-		INNER JOIN MargeCreoQueOdioGDD.local ON (local.NOMBRE = LOCAL_NOMBRE AND local.DESCRIPCION = LOCAL_DESCRIPCION)
-		WHERE PRODUCTO_LOCAL_CODIGO IS NOT NULL AND LOCAL_NOMBRE IS NOT NULL --AND PRODUCTO_LOCAL_CODIGO NOT IN (SELECT CODIGO_PRODUCTO FROM MargeCreoQueOdioGDD.producto)
-
+		WHERE PRODUCTO_LOCAL_CODIGO IS NOT NULL AND LOCAL_NOMBRE IS NOT NULL
   END
 GO
 
@@ -1195,6 +1185,10 @@ EXEC MargeCreoQueOdioGDD.migrar_medios_de_pago;
 EXEC MargeCreoQueOdioGDD.migrar_horarios_local;
 --EXEC MargeCreoQueOdioGDD.migrar_horarios_x_dia;
 EXEC MargeCreoQueOdioGDD.migrar_envios;
+EXEC MargeCreoQueOdioGDD.migrar_productos;
+EXEC MargeCreoQueOdioGDD.migrar_cupones_descuento;
+EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo;
+EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_pedido;
 --EXEC MargeCreoQueOdioGDD.migrar_pedidos
 --EXEC MargeCreoQueOdioGDD.migrar_reclamos;
 --EXEC MargeCreoQueOdioGDD.migrar_productos_x_pedido;
