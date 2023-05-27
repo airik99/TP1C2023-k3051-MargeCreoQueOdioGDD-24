@@ -777,7 +777,23 @@ AS
 GO
 
 ----------------------------- HorarioXDia -----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_x_dia
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los horarios x dia de los locales...'
+    INSERT INTO horarioxdia(ID_DIA, ID_HORARIO_LOCAL)
 
+		SELECT DISTINCT dia.ID_DIA,
+			   horario_local.ID_HORARIO_LOCAL
+		FROM gd_esquema.Maestra
+		INNER JOIN MargeCreoQueOdioGDD.dia ON (dia.NOMBRE = HORARIO_LOCAL_DIA)
+		INNER JOIN MargeCreoQueOdioGDD.horario_local ON (horario_local.HORA_APERTURA = HORARIO_LOCAL_HORA_APERTURA AND horario_local.HORA_CIERRE = HORARIO_LOCAL_HORA_CIERRE)
+		WHERE HORARIO_LOCAL_DIA IS NOT NULL AND HORARIO_LOCAL_HORA_APERTURA IS NOT NULL AND HORARIO_LOCAL_HORA_CIERRE IS NOT NULL
+
+  END
+GO
+
+--select * from MargeCreoQueOdioGDD.horarioxdia
 ---------------------------- Tipo Local ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
  AS
@@ -1209,7 +1225,7 @@ EXEC MargeCreoQueOdioGDD.migrar_operadores;
 EXEC MargeCreoQueOdioGDD.migrar_locales;
 EXEC MargeCreoQueOdioGDD.migrar_medios_de_pago;
 EXEC MargeCreoQueOdioGDD.migrar_horarios_local;
---EXEC MargeCreoQueOdioGDD.migrar_horarios_x_dia;
+EXEC MargeCreoQueOdioGDD.migrar_horarios_x_dia;
 EXEC MargeCreoQueOdioGDD.migrar_envios;
 EXEC MargeCreoQueOdioGDD.migrar_productos;
 EXEC MargeCreoQueOdioGDD.migrar_cupones_descuento;
