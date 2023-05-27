@@ -180,6 +180,23 @@ GO
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_horarios_local')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_local;
 GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_envios')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_envios;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_envios_mensajeria')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_envios_mensajeria;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_pedidos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_pedidos;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_reclamos')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_reclamos;
+GO
+
 /*********************** Limpiar Schema ***********************/
 IF EXISTS (SELECT name FROM sys.schemas WHERE name = 'MargeCreoQueOdioGDD')
 BEGIN
@@ -339,7 +356,7 @@ CREATE TABLE MargeCreoQueOdioGDD.envio (
 NRO_ENVIO INT IDENTITY(1,1), --PK
 ID_DIRECCION_DESTINO INT NOT NULL, --FK
 PRECIO_ENVIO FLOAT,
-TIEMPO_ESTIMADO_ENTREGA TIME,
+TIEMPO_ESTIMADO_ENTREGA FLOAT,
 PROPINA FLOAT,
 ID_REPARTIDOR INT NOT NULL, --FK
 PRIMARY KEY (NRO_ENVIO)
@@ -956,6 +973,38 @@ GO
 
 ---------------------------- Producto ----------------------------
 
+---------------------------- Envio ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_envios
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los envios...'
+    INSERT INTO envio(ID_DIRECCION_DESTINO, PRECIO_ENVIO, TIEMPO_ESTIMADO_ENTREGA, PROPINA, ID_REPARTIDOR)
+
+		SELECT DISTINCT direccion.ID_DIRECCION AS ID_DIRECCION_DESTINO,
+			   PEDIDO_PRECIO_ENVIO AS PRECIO_ENVIO,
+			   PEDIDO_TIEMPO_ESTIMADO_ENTREGA AS TIEMPO_ESTIMADO_ENTREGA,
+			   PEDIDO_PROPINA AS PROPINA,
+			   (SELECT TOP 1 repartidor.ID_REPARTIDOR FROM MargeCreoQueOdioGDD.repartidor WHERE repartidor.NOMBRE = REPARTIDOR_NOMBRE AND
+			   repartidor.APELLIDO = REPARTIDOR_APELLIDO AND repartidor.DNI = REPARTIDOR_DNI AND repartidor.EMAIL = REPARTIDOR_EMAIL) AS ID_REPARTIDOR
+		FROM gd_esquema.Maestra
+		JOIN MargeCreoQueOdioGDD.direccion ON (direccion.NOMBRE_DIRECCION = DIRECCION_USUARIO_NOMBRE AND direccion.CALLE_Y_NUMERO = DIRECCION_USUARIO_DIRECCION)
+		WHERE PEDIDO_NRO IS NOT NULL
+		UNION
+		SELECT DISTINCT direccion.ID_DIRECCION AS ID_DIRECCION_DESTINO,
+			   ENVIO_MENSAJERIA_PRECIO_ENVIO AS PRECIO_ENVIO,
+			   ENVIO_MENSAJERIA_TIEMPO_ESTIMADO AS TIEMPO_ESTIMADO_ENTREGA,
+			   ENVIO_MENSAJERIA_PROPINA AS PROPINA,
+			   (SELECT TOP 1 repartidor.ID_DIRECCION FROM MargeCreoQueOdioGDD.repartidor WHERE repartidor.NOMBRE = REPARTIDOR_NOMBRE AND
+			   repartidor.APELLIDO = REPARTIDOR_APELLIDO AND repartidor.DNI = REPARTIDOR_DNI AND repartidor.EMAIL = REPARTIDOR_EMAIL AND 
+			   repartidor.ID_LOCALIDAD = direccion.ID_LOCALIDAD) AS ID_REPARTIDOR
+		FROM gd_esquema.Maestra
+		JOIN MargeCreoQueOdioGDD.direccion ON (direccion.CALLE_Y_NUMERO = ENVIO_MENSAJERIA_DIR_DEST)
+		JOIN MargeCreoQueOdioGDD.localidad ON (direccion.ID_LOCALIDAD = localidad.ID_LOCALIDAD AND localidad.NOMBRE = ENVIO_MENSAJERIA_LOCALIDAD)
+		WHERE ENVIO_MENSAJERIA_NRO IS NOT NULL
+
+  END
+GO
+
 /*********************** Realizamos la ejecución de los stores procedures ***********************/
 
 EXEC MargeCreoQueOdioGDD.migrar_tipos_medio_pagos;
@@ -977,3 +1026,6 @@ EXEC MargeCreoQueOdioGDD.migrar_operadores;
 EXEC MargeCreoQueOdioGDD.migrar_locales;
 EXEC MargeCreoQueOdioGDD.migrar_medios_de_pago;
 EXEC MargeCreoQueOdioGDD.migrar_horarios_local;
+--EXEC MargeCreoQueOdioGDD.migrar_pedidos
+--EXEC MargeCreoQueOdioGDD.migrar_envios_mensajeria;
+--EXEC MargeCreoQueOdioGDD.migrar_reclamos;
