@@ -213,6 +213,10 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_descuentos_x_
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo;
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_productos_x_pedido')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_productos_x_pedido;
+GO
+
 /*********************** Limpiar Schema ***********************/
 IF EXISTS (SELECT name FROM sys.schemas WHERE name = 'MargeCreoQueOdioGDD')
 BEGIN
@@ -1069,7 +1073,25 @@ GO
 
 --select * from MargeCreoQueOdioGDD.producto
 ---------------------------- ProductoXPedido ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_productos_x_pedido
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los productos x pedido...'
+    INSERT INTO productoxpedido(ID_PEDIDO, ID_PRODUCTO, CANTIDAD, PRECIO_UNITARIO)
+		
+		SELECT (SELECT TOP 1 pedido.NRO_PEDIDO FROM MargeCreoQueOdioGDD.pedido WHERE pedido.NRO_PEDIDO = PEDIDO_NRO) AS ID_PEDIDO,
+			   producto.ID_PRODUCTO AS ID_PRODUCTO,
+			   PRODUCTO_CANTIDAD AS CANTIDAD,
+			   PRODUCTO_LOCAL_PRECIO AS PRECIO_UNITARIO
+		FROM gd_esquema.Maestra
+		INNER JOIN MargeCreoQueOdioGDD.producto ON (producto.CODIGO_PRODUCTO = PRODUCTO_LOCAL_CODIGO)
+		INNER JOIN MargeCreoQueOdioGDD.local ON (producto.ID_LOCAL = local.ID_LOCAL)
+		WHERE PEDIDO_NRO IS NOT NULL AND PRODUCTO_LOCAL_CODIGO IS NOT NULL
 
+  END
+GO
+
+--select * from MargeCreoQueOdioGDD.productoxpedido
 ---------------------------- Envio ----------------------------
 
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_envios
@@ -1193,7 +1215,7 @@ EXEC MargeCreoQueOdioGDD.migrar_productos;
 EXEC MargeCreoQueOdioGDD.migrar_cupones_descuento;
 EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo;
 EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_pedido;
---EXEC MargeCreoQueOdioGDD.migrar_pedidos
+--EXEC MargeCreoQueOdioGDD.migrar_pedidos;
 --EXEC MargeCreoQueOdioGDD.migrar_reclamos;
---EXEC MargeCreoQueOdioGDD.migrar_productos_x_pedido;
+EXEC MargeCreoQueOdioGDD.migrar_productos_x_pedido;
 --EXEC MargeCreoQueOdioGDD.migrar_envios_mensajeria;
