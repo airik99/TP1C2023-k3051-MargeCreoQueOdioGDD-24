@@ -679,6 +679,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_medio_pagos
 		WHERE MEDIO_PAGO_TIPO IS NOT NULL
   END
 GO
+
 ---------------------------- Tipo Reclamo ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_reclamos
  AS
@@ -690,8 +691,8 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_reclamos
 		WHERE RECLAMO_TIPO IS NOT NULL
   END
 GO
----------------------------- Estado Reclamo ----------------------------
 
+---------------------------- Estado Reclamo ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_reclamos
  AS
   BEGIN
@@ -702,8 +703,8 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_reclamos
 		WHERE RECLAMO_ESTADO IS NOT NULL
   END
 GO
----------------------------- Tipo Paquete ----------------------------
 
+---------------------------- Tipo Paquete ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_paquetes
  AS
   BEGIN
@@ -714,6 +715,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_paquetes
 		WHERE PAQUETE_TIPO IS NOT NULL
   END
 GO
+
 ---------------------------- Estado Mensajeria ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_mensajeria
  AS
@@ -725,6 +727,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_mensajeria
 		WHERE ENVIO_MENSAJERIA_ESTADO IS NOT NULL
   END
 GO
+
 ---------------------------- Dia ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_dias
  AS
@@ -737,6 +740,23 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_dias
 
   END
 GO
+
+---------------------------- Horario Local ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_local
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar los horarios de los locales...'
+    INSERT INTO horario_local(HORA_APERTURA, HORA_CIERRE, ID_LOCAL)
+		SELECT DISTINCT HORARIO_LOCAL_HORA_APERTURA AS HORA_APERTURA,
+		      HORARIO_LOCAL_HORA_CIERRE AS HORA_CIERRE,
+			 (SELECT TOP 1 ID_LOCAL FROM MargeCreoQueOdioGDD.local WHERE local.NOMBRE = LOCAL_NOMBRE) AS ID_LOCAL
+		FROM gd_esquema.Maestra
+		WHERE HORARIO_LOCAL_HORA_APERTURA IS NOT NULL AND HORARIO_LOCAL_HORA_CIERRE IS NOT NULL AND LOCAL_NOMBRE IS NOT NULL
+  END
+GO
+
+----------------------------- HorarioXDia -----------------------------
+
 ---------------------------- Tipo Local ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
  AS
@@ -748,6 +768,9 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
 		WHERE LOCAL_TIPO IS NOT NULL
   END
 GO
+
+---------------------------- Categoria Local ----------------------------
+
 ---------------------------- Tipo Cupon ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon
  AS
@@ -763,6 +786,75 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon
 GO
 
 --SELECT * FROM MargeCreoQueOdioGDD.tipo_cupon
+---------------------------- Cupon de Descuento ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_cupones_descuento
+ AS
+  BEGIN
+		PRINT 'Se comienzan a migrar los cupones de descuento...'
+		INSERT INTO cupon_descuento(CODIGO, ID_USUARIO, MONTO, ID_TIPO_CUPON, FECHA_ALTA, FECHA_VENCIMIENTO)
+
+		SELECT DISTINCT CUPON_NRO AS CODIGO,
+			   usuario.ID_USUARIO AS ID_USUARIO,
+			   CUPON_MONTO AS MONTO,
+			   (SELECT tipo_cupon.ID_TIPO FROM MargeCreoQueOdioGDD.tipo_cupon WHERE tipo_cupon.TIPO_CUPON = CUPON_TIPO) AS ID_TIPO_CUPON,
+			   CUPON_FECHA_ALTA AS FECHA_ALTA,
+			   CUPON_FECHA_VENCIMIENTO AS FECHA_VENCIMIENTO
+		FROM gd_esquema.Maestra
+		INNER JOIN MargeCreoQueOdioGDD.usuario ON (usuario.NOMBRE = USUARIO_NOMBRE AND usuario.APELLIDO = USUARIO_APELLIDO AND usuario.EMAIL = USUARIO_MAIL AND usuario.DNI = USUARIO_DNI)
+		WHERE CUPON_NRO IS NOT NULL
+		UNION
+		SELECT DISTINCT CUPON_RECLAMO_NRO AS CODIGO,
+			   usuario.ID_USUARIO AS ID_USUARIO,
+			   CUPON_RECLAMO_MONTO AS MONTO,
+			   (SELECT tipo_cupon.ID_TIPO FROM MargeCreoQueOdioGDD.tipo_cupon WHERE tipo_cupon.TIPO_CUPON = CUPON_RECLAMO_TIPO) AS ID_TIPO_CUPON,
+			   CUPON_RECLAMO_FECHA_ALTA AS FECHA_ALTA,
+			   CUPON_RECLAMO_FECHA_VENCIMIENTO AS FECHA_VENCIMIENTO
+		FROM gd_esquema.Maestra
+		INNER JOIN MargeCreoQueOdioGDD.usuario ON (usuario.NOMBRE = USUARIO_NOMBRE AND usuario.APELLIDO = USUARIO_APELLIDO AND usuario.EMAIL = USUARIO_MAIL AND usuario.DNI = USUARIO_DNI)
+		WHERE CUPON_RECLAMO_NRO IS NOT NULL
+
+	END
+GO
+
+--SELECT * FROM MargeCreoQueOdioGDD.cupon_descuento
+---------------------------- DescuentoXPedido ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_pedido
+ AS
+  BEGIN
+		PRINT 'Se comienzan a migrar los descuentos por pedido...'
+		INSERT INTO descuentoxpedido(ID_PEDIDO, ID_CUPON)
+
+		SELECT DISTINCT pedido.NRO_PEDIDO AS ID_PEDIDO,
+			   cupon_descuento.CODIGO AS ID_CUPON
+		FROM gd_esquema.Maestra
+		INNER JOIN MargeCreoQueOdioGDD.cupon_descuento ON (cupon_descuento.CODIGO = CUPON_NRO AND cupon_descuento.FECHA_ALTA = CUPON_RECLAMO_FECHA_ALTA AND cupon_descuento.FECHA_VENCIMIENTO = CUPON_RECLAMO_FECHA_VENCIMIENTO AND cupon_descuento.MONTO = CUPON_RECLAMO_MONTO)
+		INNER JOIN MargeCreoQueOdioGDD.usuario ON (usuario.ID_USUARIO = cupon_descuento.ID_USUARIO)
+		INNER JOIN MargeCreoQueOdioGDD.pedido ON (pedido.ID_USUARIO = usuario.ID_USUARIO)
+		WHERE CUPON_NRO IS NOT NULL AND NRO_PEDIDO IS NOT NULL
+
+	END
+GO
+
+--SELECT * FROM MargeCreoQueOdioGDD.descuentoxpedido
+---------------------------- DescuentoXReclamo ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo
+ AS
+  BEGIN
+		PRINT 'Se comienzan a migrar los descuentos por reclamo...'
+		INSERT INTO descuentoxreclamo(ID_RECLAMO, ID_CUPON)
+
+		SELECT DISTINCT reclamo.NRO_RECLAMO AS ID_RECLAMO,
+			   cupon_descuento.CODIGO AS ID_CUPON
+		FROM gd_esquema.Maestra
+		INNER JOIN MargeCreoQueOdioGDD.cupon_descuento ON (cupon_descuento.CODIGO = CUPON_NRO AND cupon_descuento.FECHA_ALTA = CUPON_RECLAMO_FECHA_ALTA AND cupon_descuento.FECHA_VENCIMIENTO = CUPON_RECLAMO_FECHA_VENCIMIENTO AND cupon_descuento.MONTO = CUPON_RECLAMO_MONTO)
+		INNER JOIN MargeCreoQueOdioGDD.usuario ON (usuario.ID_USUARIO = cupon_descuento.ID_USUARIO)
+		INNER JOIN MargeCreoQueOdioGDD.reclamo ON (reclamo.ID_USUARIO = usuario.ID_USUARIO)
+		WHERE CUPON_NRO IS NOT NULL AND RECLAMO_NRO IS NOT NULL
+
+	END
+GO
+
+--SELECT * FROM MargeCreoQueOdioGDD.descuentoxreclamo
 ---------------------------- Estado Pedido ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido
  AS
@@ -949,21 +1041,28 @@ AS
 	    WHERE MEDIO_PAGO_TIPO IS NOT NULL
   END
 GO
----------------------------- Horario Local ----------------------------
-CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_local
+
+---------------------------- Producto ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_productos 
 AS
   BEGIN
-	PRINT 'Se comienzan a migrar los horarios de los locales...'
-    INSERT INTO horario_local(HORA_APERTURA, HORA_CIERRE, ID_LOCAL)
-		SELECT DISTINCT HORARIO_LOCAL_HORA_APERTURA AS HORA_APERTURA,
-		      HORARIO_LOCAL_HORA_CIERRE AS HORA_CIERRE,
-			 (SELECT TOP 1 ID_LOCAL FROM MargeCreoQueOdioGDD.local WHERE local.NOMBRE = LOCAL_NOMBRE) AS ID_LOCAL
+	PRINT 'Se comienzan a migrar los productos...'
+    INSERT INTO producto(CODIGO_PRODUCTO, ID_LOCAL, NOMBRE, DESCRIPCION, PRECIO)
+
+		SELECT DISTINCT PRODUCTO_LOCAL_CODIGO AS CODIGO_PRODUCTO,
+		       ID_LOCAL AS ID_LOCAL,
+			   PRODUCTO_LOCAL_NOMBRE AS NOMBRE,
+			   PRODUCTO_LOCAL_DESCRIPCION AS DESCRIPCION,
+			   PRODUCTO_LOCAL_PRECIO AS PRECIO
 		FROM gd_esquema.Maestra
-		WHERE HORARIO_LOCAL_HORA_APERTURA IS NOT NULL AND HORARIO_LOCAL_HORA_CIERRE IS NOT NULL AND LOCAL_NOMBRE IS NOT NULL
+		INNER JOIN MargeCreoQueOdioGDD.local ON (local.NOMBRE = LOCAL_NOMBRE AND local.DESCRIPCION = LOCAL_DESCRIPCION)
+		WHERE PRODUCTO_LOCAL_CODIGO IS NOT NULL AND LOCAL_NOMBRE IS NOT NULL --AND PRODUCTO_LOCAL_CODIGO NOT IN (SELECT CODIGO_PRODUCTO FROM MargeCreoQueOdioGDD.producto)
+
   END
 GO
 
----------------------------- Producto ----------------------------
+--select * from MargeCreoQueOdioGDD.producto
+---------------------------- ProductoXPedido ----------------------------
 
 ---------------------------- Envio ----------------------------
 
@@ -1057,6 +1156,9 @@ AS
   END
 GO
 */
+
+---------------------------- Envio Mensajeria ----------------------------
+
 
 /*********************** Realizamos la ejecución de los stores procedures ***********************/
 
