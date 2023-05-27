@@ -169,16 +169,16 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_locales')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_locales;
 GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_locales')
-    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_locales;
-GO
-
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_medios_de_pago')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_medios_de_pago;
 GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_horarios_local')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_local;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_horarios_x_dia')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_x_dia;
 GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_envios')
@@ -195,6 +195,18 @@ GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_reclamos')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_reclamos;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_cupones_descuento')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_cupones_descuento;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_descuentos_x_pedido')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_pedido;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_descuentos_x_reclamo')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo;
 GO
 
 /*********************** Limpiar Schema ***********************/
@@ -1181,7 +1193,9 @@ EXEC MargeCreoQueOdioGDD.migrar_operadores;
 EXEC MargeCreoQueOdioGDD.migrar_locales;
 EXEC MargeCreoQueOdioGDD.migrar_medios_de_pago;
 EXEC MargeCreoQueOdioGDD.migrar_horarios_local;
+--EXEC MargeCreoQueOdioGDD.migrar_horarios_x_dia;
 EXEC MargeCreoQueOdioGDD.migrar_envios;
 --EXEC MargeCreoQueOdioGDD.migrar_pedidos
---EXEC MargeCreoQueOdioGDD.migrar_envios_mensajeria;
 --EXEC MargeCreoQueOdioGDD.migrar_reclamos;
+--EXEC MargeCreoQueOdioGDD.migrar_productos_x_pedido;
+--EXEC MargeCreoQueOdioGDD.migrar_envios_mensajeria;
