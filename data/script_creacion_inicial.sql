@@ -2,6 +2,9 @@ USE GD1C2023
 GO
 
 /*********************** Limpiar tablas ***********************/
+IF EXISTS (SELECT name FROM sys.tables WHERE name = 'localidadxrepartidor')
+DROP TABLE MargeCreoQueOdioGDD.localidadxrepartidor;
+
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'descuentoxreclamo')
 DROP TABLE MargeCreoQueOdioGDD.descuentoxreclamo;
 
@@ -10,9 +13,6 @@ DROP TABLE MargeCreoQueOdioGDD.descuentoxpedido;
 
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'productoxpedido')
 DROP TABLE MargeCreoQueOdioGDD.productoxpedido;
-
-IF EXISTS (SELECT name FROM sys.tables WHERE name = 'horarioxdia')
-DROP TABLE MargeCreoQueOdioGDD.horarioxdia;
 
 IF EXISTS (SELECT name FROM sys.tables WHERE name = 'reclamo')
 DROP TABLE MargeCreoQueOdioGDD.reclamo;
@@ -177,10 +177,6 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_horarios_loca
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_local;
 GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_horarios_x_dia')
-    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_x_dia;
-GO
-
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_envios')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_envios;
 GO
@@ -219,6 +215,14 @@ GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_productos_x_pedido')
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_productos_x_pedido;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_localidades_x_repartidor')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_localidades_x_repartidor;
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'agregar_categorias')
+    DROP PROCEDURE MargeCreoQueOdioGDD.agregar_categorias;
 GO
 
 /*********************** Limpiar Schema ***********************/
@@ -275,13 +279,9 @@ CREATE TABLE MargeCreoQueOdioGDD.horario_local (
 ID_HORARIO_LOCAL INT IDENTITY(1,1), --PK
 HORA_APERTURA DECIMAL,
 HORA_CIERRE DECIMAL,
+ID_DIA INT NOT NULL, --FK
 ID_LOCAL INT NOT NULL, --FK
 PRIMARY KEY (ID_HORARIO_LOCAL)
-);
-
-CREATE TABLE MargeCreoQueOdioGDD.horarioxdia (
-ID_DIA INT NOT NULL, --FK
-ID_HORARIO_LOCAL INT NOT NULL, --FK
 );
 
 CREATE TABLE MargeCreoQueOdioGDD.dia (
@@ -397,7 +397,6 @@ TELEFONO NVARCHAR(255),
 EMAIL NVARCHAR(255),
 ID_DIRECCION INT NOT NULL, --FK
 FECHA_NACIMIENTO DATE,
-ID_LOCALIDAD INT NOT NULL, --FK
 ID_TIPO_MOVILIDAD INT NOT NULL, --FK
 PRIMARY KEY (ID_REPARTIDOR)
 );
@@ -406,6 +405,11 @@ CREATE TABLE MargeCreoQueOdioGDD.tipo_movilidad (
 ID_TIPO INT IDENTITY(1,1), --PK
 TIPO_MOVILIDAD NVARCHAR(255),
 PRIMARY KEY (ID_TIPO)
+);
+
+CREATE TABLE MargeCreoQueOdioGDD.localidadxrepartidor (
+ID_LOCALIDAD INT NOT NULL, --FK
+ID_REPARTIDOR INT NOT NULL, --FK
 );
 
 -------------------------- DIRECCION --------------------------
@@ -531,13 +535,9 @@ ALTER TABLE MargeCreoQueOdioGDD.horario_local
 ADD CONSTRAINT FK_LOCAL_HORARIO_LOCAL
 FOREIGN KEY (ID_LOCAL) REFERENCES MargeCreoQueOdioGDD.local
 
-ALTER TABLE MargeCreoQueOdioGDD.horarioxdia
-ADD CONSTRAINT FK_DIA_HORARIOXDIA
+ALTER TABLE MargeCreoQueOdioGDD.horario_local
+ADD CONSTRAINT FK_DIA_HORARIO_LOCAL
 FOREIGN KEY (ID_DIA) REFERENCES MargeCreoQueOdioGDD.dia
-
-ALTER TABLE MargeCreoQueOdioGDD.horarioxdia
-ADD CONSTRAINT FK_HORARIO_HORARIOXDIA
-FOREIGN KEY (ID_HORARIO_LOCAL) REFERENCES MargeCreoQueOdioGDD.horario_local
 
 -------------------------- PEDIDO --------------------------
 ALTER TABLE MargeCreoQueOdioGDD.pedido
@@ -623,12 +623,16 @@ ADD CONSTRAINT FK_DIRECCION_REPARTIDOR
 FOREIGN KEY (ID_DIRECCION) REFERENCES MargeCreoQueOdioGDD.direccion
 
 ALTER TABLE MargeCreoQueOdioGDD.repartidor
-ADD CONSTRAINT FK_LOCALIDAD_REPARTIDOR
-FOREIGN KEY (ID_LOCALIDAD) REFERENCES MargeCreoQueOdioGDD.localidad
-
-ALTER TABLE MargeCreoQueOdioGDD.repartidor
 ADD CONSTRAINT FK_MOVILIDAD_REPARTIDOR
 FOREIGN KEY (ID_TIPO_MOVILIDAD) REFERENCES MargeCreoQueOdioGDD.tipo_movilidad
+
+ALTER TABLE MargeCreoQueOdioGDD.localidadxrepartidor
+ADD CONSTRAINT FK_LOCALIDAD_PRODUCTOXPEDIDO 
+FOREIGN KEY (ID_LOCALIDAD) REFERENCES MargeCreoQueOdioGDD.localidad
+
+ALTER TABLE MargeCreoQueOdioGDD.localidadxrepartidor
+ADD CONSTRAINT FK_REPARTIDOR_PRODUCTOXPEDIDO 
+FOREIGN KEY (ID_REPARTIDOR) REFERENCES MargeCreoQueOdioGDD.repartidor
 
 -------------------------- DIRECCION --------------------------
 ALTER TABLE MargeCreoQueOdioGDD.direccion
@@ -765,36 +769,20 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_dias
 
   END
 GO
-
 ---------------------------- Horario Local ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_local
 AS
   BEGIN
 	PRINT 'Se comienzan a migrar los horarios de los locales...'
-    INSERT INTO horario_local(HORA_APERTURA, HORA_CIERRE, ID_LOCAL)
+    INSERT INTO horario_local(HORA_APERTURA, HORA_CIERRE, ID_DIA, ID_LOCAL)
 		SELECT DISTINCT HORARIO_LOCAL_HORA_APERTURA AS HORA_APERTURA,
 		      HORARIO_LOCAL_HORA_CIERRE AS HORA_CIERRE,
+			 (SELECT TOP 1 ID_DIA FROM MargeCreoQueOdioGDD.dia WHERE dia.NOMBRE = HORARIO_LOCAL_DIA) AS ID_DIA,
 			 (SELECT TOP 1 ID_LOCAL FROM MargeCreoQueOdioGDD.local WHERE local.NOMBRE = LOCAL_NOMBRE) AS ID_LOCAL
 		FROM gd_esquema.Maestra
 		WHERE HORARIO_LOCAL_HORA_APERTURA IS NOT NULL AND HORARIO_LOCAL_HORA_CIERRE IS NOT NULL AND LOCAL_NOMBRE IS NOT NULL
   END
 GO
-
------------------------------ HorarioXDia -----------------------------
-CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_horarios_x_dia
-AS
-  BEGIN
-	PRINT 'Se comienzan a migrar los horarios x dia de los locales...'
-    INSERT INTO horarioxdia(ID_DIA, ID_HORARIO_LOCAL)
-		SELECT DISTINCT (SELECT TOP 1 ID_DIA FROM MargeCreoQueOdioGDD.dia WHERE dia.NOMBRE = HORARIO_LOCAL_DIA) AS ID_DIA,
-			            (SELECT TOP 1 ID_HORARIO_LOCAL FROM MargeCreoQueOdioGDD.horario_local WHERE horario_local.HORA_APERTURA = HORARIO_LOCAL_HORA_APERTURA
-						AND horario_local.HORA_CIERRE = HORARIO_LOCAL_HORA_CIERRE) AS ID_HORARIO_LOCAL
-		FROM gd_esquema.Maestra
-		WHERE HORARIO_LOCAL_DIA IS NOT NULL AND HORARIO_LOCAL_HORA_APERTURA IS NOT NULL AND HORARIO_LOCAL_HORA_CIERRE IS NOT NULL
-  END
-GO
-
---select * from MargeCreoQueOdioGDD.horarioxdia
 ---------------------------- Tipo Local ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
  AS
@@ -807,7 +795,19 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_local
   END
 GO
 ---------------------------- Categoria Local ----------------------------
-
+CREATE PROCEDURE MargeCreoQueOdioGDD.agregar_categorias
+AS
+BEGIN
+    PRINT 'Se comienzan a agregar categorias...'
+    INSERT INTO MargeCreoQueOdioGDD.categoria_local(NOMBRE, ID_TIPO)
+    VALUES
+        ('Parilla', (SELECT ID_TIPO FROM MargeCreoQueOdioGDD.tipo_local WHERE NOMBRE = 'Tipo Local Restaurante')),
+        ('Heladeria', (SELECT ID_TIPO FROM MargeCreoQueOdioGDD.tipo_local WHERE NOMBRE = 'Tipo Local Restaurante')),
+        ('Comidas Rapidas', (SELECT ID_TIPO FROM MargeCreoQueOdioGDD.tipo_local WHERE NOMBRE = 'Tipo Local Restaurante')),
+        ('Kiosko', (SELECT ID_TIPO FROM MargeCreoQueOdioGDD.tipo_local WHERE NOMBRE = 'Tipo Local Mercado')),
+        ('Supermercado', (SELECT ID_TIPO FROM MargeCreoQueOdioGDD.tipo_local WHERE NOMBRE = 'Tipo Local Mercado'));
+  END
+GO
 ---------------------------- Tipo Cupon ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon
  AS
@@ -816,13 +816,12 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_cupon
 		INSERT INTO tipo_cupon(TIPO_CUPON)
 		SELECT DISTINCT CUPON_TIPO AS TIPO_CUPON
 		FROM gd_esquema.Maestra
+		WHERE CUPON_TIPO IS NOT NULL
 		SELECT DISTINCT CUPON_RECLAMO_TIPO AS TIPO_CUPON
 		FROM gd_esquema.Maestra
-		WHERE CUPON_RECLAMO_TIPO IS NOT NULL AND CUPON_TIPO IS NOT NULL
+		WHERE CUPON_RECLAMO_TIPO IS NOT NULL
 	END
 GO
-
---SELECT * FROM MargeCreoQueOdioGDD.tipo_cupon
 ---------------------------- Cupon de Descuento ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_cupones_descuento
  AS
@@ -848,8 +847,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_cupones_descuento
 		WHERE CUPON_RECLAMO_NRO IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MargeCreoQueOdioGDD.cupon_descuento WHERE cupon_descuento.CODIGO = CUPON_RECLAMO_NRO)
 	END
 GO
-
---SELECT * FROM MargeCreoQueOdioGDD.cupon_descuento
 ---------------------------- DescuentoXPedido ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_pedido
  AS
@@ -862,8 +859,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_pedido
 		WHERE CUPON_NRO IS NOT NULL AND PEDIDO_NRO IS NOT NULL
 	END
 GO
-
---SELECT * FROM MargeCreoQueOdioGDD.descuentoxpedido
 ---------------------------- DescuentoXReclamo ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo
  AS
@@ -871,13 +866,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo
 		PRINT 'Se comienzan a migrar los descuentos por reclamo...'
 		INSERT INTO descuentoxreclamo(ID_RECLAMO, ID_CUPON)
 		SELECT DISTINCT (SELECT TOP 1 NRO_RECLAMO FROM MargeCreoQueOdioGDD.reclamo WHERE reclamo.NRO_RECLAMO = RECLAMO_NRO) AS ID_RECLAMO,
-			            (SELECT TOP 1 CODIGO FROM MargeCreoQueOdioGDD.cupon_descuento WHERE cupon_descuento.CODIGO = CUPON_NRO) AS ID_CUPON
+			            (SELECT TOP 1 CODIGO FROM MargeCreoQueOdioGDD.cupon_descuento WHERE cupon_descuento.CODIGO = CUPON_RECLAMO_NRO) AS ID_CUPON
 		FROM gd_esquema.Maestra
-		WHERE CUPON_NRO IS NOT NULL AND RECLAMO_NRO IS NOT NULL
+		WHERE CUPON_RECLAMO_NRO IS NOT NULL AND RECLAMO_NRO IS NOT NULL
 	END
 GO
-
---SELECT * FROM MargeCreoQueOdioGDD.descuentoxreclamo
 ---------------------------- Estado Pedido ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido
  AS
@@ -889,7 +882,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_estados_pedido
 		WHERE PEDIDO_ESTADO IS NOT NULL
 	END;
 GO
-
 ---------------------------- Tipo Movilidad ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_tipos_movilidad
  AS
@@ -913,8 +905,6 @@ AS
         SELECT DISTINCT LOCAL_PROVINCIA AS NOMBRE FROM gd_esquema.Maestra WHERE LOCAL_PROVINCIA IS NOT NULL 
 	END;
 GO
-
---SELECT * FROM MargeCreoQueOdioGDD.provincia
 ---------------------------- Localidad ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
  AS
@@ -935,7 +925,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades
 		WHERE DIRECCION_USUARIO_LOCALIDAD IS NOT NULL
   END
 GO
---select * from MargeCreoQueOdioGDD.localidad
 ---------------------------- Direccion ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
  AS
@@ -973,8 +962,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones
 		WHERE LOCAL_DIRECCION IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.direccion
 ---------------------------- Usuario ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
  AS
@@ -993,13 +980,12 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_usuarios
 			   WHERE USUARIO_MAIL IS NOT NULL AND DIRECCION_USUARIO_DIRECCION IS NOT NULL
   END
 GO
-
 ---------------------------- Repartidor ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
  AS
   BEGIN
 	PRINT 'Se comienzan a migrar los repartidores...'
-    INSERT INTO repartidor (NOMBRE, APELLIDO, DNI, TELEFONO, EMAIL, FECHA_NACIMIENTO, ID_TIPO_MOVILIDAD, ID_DIRECCION, ID_LOCALIDAD)
+    INSERT INTO repartidor (NOMBRE, APELLIDO, DNI, TELEFONO, EMAIL, FECHA_NACIMIENTO, ID_TIPO_MOVILIDAD, ID_DIRECCION)
 		SELECT DISTINCT REPARTIDOR_NOMBRE AS NOMBRE,
 			   REPARTIDOR_APELLIDO AS APELLIDO,
 			   REPARTIDOR_DNI AS DNI,
@@ -1007,15 +993,24 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
 			   REPARTIDOR_EMAIL AS EMAIL,
 			   REPARTIDOR_FECHA_NAC AS FECHA_NACIMIENTO,
 			   (SELECT TOP 1 ID_TIPO FROM MargeCreoQueOdioGDD.tipo_movilidad WHERE tipo_movilidad.TIPO_MOVILIDAD = REPARTIDOR_TIPO_MOVILIDAD) AS ID_TIPO_MOVILIDAD,
-			   (SELECT TOP 1 ID_DIRECCION FROM MargeCreoQueOdioGDD.direccion WHERE direccion.CALLE_Y_NUMERO = REPARTIDOR_DIRECION) AS ID_DIRECCION,
-			   lo.ID_LOCALIDAD AS ID_LOCALIDAD
+			   (SELECT TOP 1 ID_DIRECCION FROM MargeCreoQueOdioGDD.direccion WHERE direccion.CALLE_Y_NUMERO = REPARTIDOR_DIRECION) AS ID_DIRECCION
 			   FROM gd_esquema.Maestra
-			   INNER JOIN MargeCreoQueOdioGDD.localidad AS lo ON (lo.NOMBRE = isnull(LOCAL_LOCALIDAD, ENVIO_MENSAJERIA_LOCALIDAD))
 		WHERE REPARTIDOR_EMAIL IS NOT NULL AND REPARTIDOR_DIRECION IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.repartidor
+---------------------------- LocalidadXRepartidor ----------------------------
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades_x_repartidor
+AS
+  BEGIN
+	PRINT 'Se comienzan a migrar las localidades x repartidor...'
+    INSERT INTO localidadxrepartidor(ID_REPARTIDOR, ID_LOCALIDAD)
+		SELECT (SELECT TOP 1 ID_REPARTIDOR FROM MargeCreoQueOdioGDD.repartidor WHERE repartidor.DNI = REPARTIDOR_DNI AND repartidor.EMAIL = REPARTIDOR_EMAIL) AS ID_REPARTIDOR,
+			   lo.ID_LOCALIDAD AS ID_LOCALIDAD
+			   FROM gd_esquema.Maestra
+			   INNER JOIN MargeCreoQueOdioGDD.localidad AS lo ON (lo.NOMBRE = isnull(LOCAL_LOCALIDAD, ENVIO_MENSAJERIA_LOCALIDAD))
+			   WHERE REPARTIDOR_DNI IS NOT NULL
+  END
+GO
 ---------------------------- Operador ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
  AS
@@ -1033,8 +1028,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
 		WHERE OPERADOR_RECLAMO_NOMBRE IS NOT NULL AND OPERADOR_RECLAMO_DIRECCION IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.operador
 ---------------------------- Local ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_locales
 AS
@@ -1042,7 +1035,7 @@ AS
 	PRINT 'Se comienzan a migrar los locales...'
     INSERT INTO local(NOMBRE, ID_CATEGORIA, DESCRIPCION, ID_DIRECCION)
 		SELECT DISTINCT LOCAL_NOMBRE AS NOMBRE,
-			   NULL AS ID_CATEGORIA,
+		       (SELECT TOP 1 ID_CATEGORIA FROM MargeCreoQueOdioGDD.categoria_local WHERE LOCAL_TIPO = (SELECT tipo_local.NOMBRE FROM MargeCreoQueOdioGDD.tipo_local WHERE categoria_local.ID_TIPO = tipo_local.ID_TIPO) AND LOCAL_TIPO is not null) AS ID_CATEGORIA,
 			   LOCAL_DESCRIPCION AS DESCRIPCION,
 			   (SELECT TOP 1 ID_DIRECCION FROM MargeCreoQueOdioGDD.direccion WHERE direccion.CALLE_Y_NUMERO = LOCAL_DIRECCION) AS ID_DIRECCION
 		FROM gd_esquema.Maestra
@@ -1096,8 +1089,6 @@ AS
 		WHERE PEDIDO_NRO IS NOT NULL AND PRODUCTO_LOCAL_CODIGO IS NOT NULL
   END
 GO
-
---select * from MargeCreoQueOdioGDD.producto
 ---------------------------- Envio ----------------------------
 
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_envios
@@ -1199,13 +1190,13 @@ AS
 		WHERE ENVIO_MENSAJERIA_NRO IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MargeCreoQueOdioGDD.envio_mensajeria WHERE envio_mensajeria.NRO_ENVIO_MENSAJERIA = ENVIO_MENSAJERIA_NRO)
   END
 GO
-
 /*********************** Realizamos la ejecución de los stores procedures ***********************/
 
 EXEC MargeCreoQueOdioGDD.migrar_tipos_medio_pagos;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_paquetes;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_local;
+EXEC MargeCreoQueOdioGDD.agregar_categorias;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_cupon;
 EXEC MargeCreoQueOdioGDD.migrar_tipos_movilidad;
 EXEC MargeCreoQueOdioGDD.migrar_provincias;
@@ -1227,8 +1218,7 @@ EXEC MargeCreoQueOdioGDD.migrar_cupones_descuento;
 EXEC MargeCreoQueOdioGDD.migrar_pedidos;
 EXEC MargeCreoQueOdioGDD.migrar_envios_mensajeria;
 EXEC MargeCreoQueOdioGDD.migrar_reclamos;
-EXEC MargeCreoQueOdioGDD.migrar_horarios_x_dia;
 EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_pedido;
 EXEC MargeCreoQueOdioGDD.migrar_productos_x_pedido;
 EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo;
-
+EXEC MargeCreoQueOdioGDD.migrar_localidades_x_repartidor;
