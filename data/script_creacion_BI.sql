@@ -48,8 +48,8 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Estado_Mensajeria;
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Local')
 DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Local;
 
-IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Medio_Pago')
-DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago;
+/*IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Medio_Pago')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago;*/
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Provincia')
 DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
@@ -162,12 +162,12 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Rango_Etario (
 	EDAD_FINAL INT NOT NULL,
 	PRIMARY KEY (ID_RANGO_ETARIO)
 );
-
+/*
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago (
 	ID_TIPO_PAGO INT IDENTITY(1,1),
 	MEDIO_PAGO NVARCHAR(255) NOT NULL,
 	PRIMARY KEY (ID_TIPO_PAGO)
-);
+);*/
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Local ( /* Creo que si bien lo dice el enunciado, no lo usamos */
 	ID_TIPO_LOCAL INT IDENTITY(1,1),
