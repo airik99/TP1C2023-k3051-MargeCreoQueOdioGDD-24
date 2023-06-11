@@ -1,6 +1,84 @@
 USE GD1C2023
 GO
 
+/* --------------------------------------------- Limpiar tablas --------------------------------------------- */
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
+DROP TABLE MargeCreoQueOdioGDD.BI_Reclamo;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Pedido')
+DROP TABLE MargeCreoQueOdioGDD.BI_Pedido;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Cupon_Descuento')
+DROP TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Envio_Mensajeria')
+DROP TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Envio')
+DROP TABLE MargeCreoQueOdioGDD.BI_Envio;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Local')
+DROP TABLE MargeCreoQueOdioGDD.BI_Local;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Localidad')
+DROP TABLE MargeCreoQueOdioGDD.BI_Localidad;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Operador')
+DROP TABLE MargeCreoQueOdioGDD.BI_Operador;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Usuario')
+DROP TABLE MargeCreoQueOdioGDD.BI_Usuario;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Repartidor')
+DROP TABLE MargeCreoQueOdioGDD.BI_Repartidor;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Categoria_Local')
+DROP TABLE MargeCreoQueOdioGDD.BI_Categoria_Local;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Rango_Etario')
+DROP TABLE MargeCreoQueOdioGDD.BI_Rango_Etario;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Paquete')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Paquete;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Estado_Mensajeria')
+DROP TABLE MargeCreoQueOdioGDD.BI_Estado_Mensajeria;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Local')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Local;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Medio_Pago')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Provincia')
+DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Estado_Pedido')
+DROP TABLE MargeCreoQueOdioGDD.BI_Estado_Pedido;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Movilidad')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Movilidad;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Reclamo')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Reclamo;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Estado_Reclamo')
+DROP TABLE MargeCreoQueOdioGDD.BI_Estado_Reclamo;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Cupon')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Cupon;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Rango_Horario')
+DROP TABLE MargeCreoQueOdioGDD.BI_Rango_Horario;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dia')
+DROP TABLE MargeCreoQueOdioGDD.BI_Dia;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tiempo')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tiempo;
+
+
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tiempo (
@@ -230,9 +308,6 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
 /* --------------------------------------------- Alter tables --------------------------------------------- */
 
 -- Localidad
-ALTER TABLE MargeCreoQueOdioGDD.BI_Localidad
-ADD CONSTRAINT FK_BI_PROVINCIA_ID
-FOREIGN KEY (ID_PROVINCIA) REFERENCES MargeCreoQueOdioGDD.BI_Provincia
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Localidad
 ADD CONSTRAINT FK_BI_PROVINCIA_ID
