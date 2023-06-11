@@ -77,7 +77,40 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Dia;
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tiempo')
 DROP TABLE MargeCreoQueOdioGDD.BI_Tiempo;
+GO
 
+/* --------------------------------------------- Creacion de funciones --------------------------------------------- */
+CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad
+BEGIN DECLARE @edad int;
+IF (MONTH(@fecha_nacimiento)!=MONTH(GETDATE()))
+	SET @edad = DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12;
+ELSE IF(DAY(@fecha_nacimiento) > DAY(GETDATE()))
+	SET @edad = (DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12)-1;
+ELSE 
+BEGIN
+	SET @edad = DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12;
+END
+	RETURN @edad;
+END
+GO
+
+CREATE FUNCTION MargeCreoQueOdioGDD.rangoEtario (@edad int) RETURNS varchar(20) AS -- te devuelve el rango etario al que pertenece
+BEGIN DECLARE @valor varchar(10);
+IF (@edad >= 25 AND @edad < 35)
+BEGIN
+	SET @valor = '[25 - 35]';
+END
+ELSE IF (@edad >= 35 AND @edad < 55)
+BEGIN
+	SET @valor = '[35 - 55]';
+END
+ELSE IF(@edad >= 55)
+BEGIN
+	SET @valor = '+55';
+END
+	RETURN @valor;
+END
+GO
 
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
 
