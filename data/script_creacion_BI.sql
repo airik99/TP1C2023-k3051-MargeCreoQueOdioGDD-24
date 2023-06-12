@@ -1,6 +1,19 @@
 USE GD1C2023
 GO
 
+/* --------------------------------------------- Limpiar funciones --------------------------------------------- */
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerHora')
+DROP FUNCTION MargeCreoQueOdioGDD.obtenerHora
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'rangoHorario')
+DROP FUNCTION MargeCreoQueOdioGDD.rangoHorario
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'rangoEtario')
+DROP FUNCTION MargeCreoQueOdioGDD.rangoEtario
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'edadActual')
+DROP FUNCTION MargeCreoQueOdioGDD.edadActual
+
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
@@ -80,38 +93,45 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Tiempo;
 GO
 
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
-CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad
+CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad segun una fecha de nacimiento
 BEGIN DECLARE @edad int;
-IF (MONTH(@fecha_nacimiento)!=MONTH(GETDATE()))
-	SET @edad = DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12;
-ELSE IF(DAY(@fecha_nacimiento) > DAY(GETDATE()))
-	SET @edad = (DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12)-1;
-ELSE 
-BEGIN
-	SET @edad = DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12;
-END
-	RETURN @edad;
-END
+      DECLARE @fecha_actual datetime2(3) = GETDATE();
+      SET @edad = DATEDIFF(YEAR, @fecha_nacimiento, @fecha_actual);
+      IF (MONTH(@fecha_nacimiento) > MONTH(@fecha_actual) OR (MONTH(@fecha_nacimiento) = MONTH(@fecha_actual) AND DAY(@fecha_nacimiento) > DAY(@fecha_actual)))
+        SET @edad = @edad - 1;
+    RETURN @edad;
+END;
 GO
 
 CREATE FUNCTION MargeCreoQueOdioGDD.rangoEtario (@edad int) RETURNS varchar(20) AS -- te devuelve el rango etario al que pertenece
 BEGIN DECLARE @valor varchar(10);
-IF (@edad >= 25 AND @edad < 35)
-BEGIN
-	SET @valor = '[25 - 35]';
-END
-ELSE IF (@edad >= 35 AND @edad < 55)
-BEGIN
-	SET @valor = '[35 - 55]';
-END
-ELSE IF(@edad >= 55)
-BEGIN
-	SET @valor = '+55';
-END
+    IF (@edad >= 25 AND @edad < 35) BEGIN SET @valor = '[25 - 35]' END
+    ELSE IF (@edad >= 35 AND @edad < 55) BEGIN SET @valor = '[35 - 55]' END
+    ELSE IF(@edad >= 55) BEGIN SET @valor = '+55' END
 	RETURN @valor;
 END
 GO
 
+CREATE FUNCTION MargeCreoQueOdioGDD.obtenerHora(@fechaHora datetime) RETURNS int AS -- recibe un datetime y devuelve solo la hora como int
+BEGIN DECLARE @hora int;
+    SET @hora = DATEPART(HOUR, @fechaHora);
+    RETURN @hora;
+END
+GO
+
+CREATE FUNCTION MargeCreoQueOdioGDD.rangoHorario (@hora int) RETURNS varchar(20) AS -- te devuelve el rango horario al que pertenece
+BEGIN DECLARE @rango varchar(20);
+    IF (@hora >= 8 AND @hora < 10) BEGIN SET @rango = '08:00 - 10:00' END
+    ELSE IF (@hora >= 10 AND @hora < 12) BEGIN SET @rango = '10:00 - 12:00' END
+    ELSE IF (@hora >= 12 AND @hora < 14) BEGIN SET @rango = '12:00 - 14:00' END
+    ELSE IF (@hora >= 14 AND @hora < 16) BEGIN SET @rango = '14:00 - 16:00' END
+    ELSE IF (@hora >= 16 AND @hora < 18) BEGIN SET @rango = '16:00 - 18:00' END
+    ELSE IF (@hora >= 18 AND @hora < 20) BEGIN SET @rango = '18:00 - 20:00' END
+    ELSE IF (@hora >= 20 AND @hora < 22) BEGIN SET @rango = '20:00 - 22:00' END
+    ELSE IF (@hora >= 22 OR @hora = 0) BEGIN SET @rango = '22:00 - 00:00' END
+    RETURN @rango;
+END
+GO
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tiempo (
