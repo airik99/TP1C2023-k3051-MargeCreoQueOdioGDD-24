@@ -1,6 +1,116 @@
 USE GD1C2023
 GO
 
+/* --------------------------------------------- Limpiar tablas --------------------------------------------- */
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
+DROP TABLE MargeCreoQueOdioGDD.BI_Reclamo;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Pedido')
+DROP TABLE MargeCreoQueOdioGDD.BI_Pedido;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Cupon_Descuento')
+DROP TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Envio_Mensajeria')
+DROP TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Envio')
+DROP TABLE MargeCreoQueOdioGDD.BI_Envio;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Local')
+DROP TABLE MargeCreoQueOdioGDD.BI_Local;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Localidad')
+DROP TABLE MargeCreoQueOdioGDD.BI_Localidad;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Operador')
+DROP TABLE MargeCreoQueOdioGDD.BI_Operador;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Usuario')
+DROP TABLE MargeCreoQueOdioGDD.BI_Usuario;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Repartidor')
+DROP TABLE MargeCreoQueOdioGDD.BI_Repartidor;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Categoria_Local')
+DROP TABLE MargeCreoQueOdioGDD.BI_Categoria_Local;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Rango_Etario')
+DROP TABLE MargeCreoQueOdioGDD.BI_Rango_Etario;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Paquete')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Paquete;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Estado_Mensajeria')
+DROP TABLE MargeCreoQueOdioGDD.BI_Estado_Mensajeria;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Local')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Local;
+
+/*IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Medio_Pago')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago;*/
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Provincia')
+DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Estado_Pedido')
+DROP TABLE MargeCreoQueOdioGDD.BI_Estado_Pedido;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Movilidad')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Movilidad;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Reclamo')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Reclamo;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Estado_Reclamo')
+DROP TABLE MargeCreoQueOdioGDD.BI_Estado_Reclamo;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Cupon')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Cupon;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Rango_Horario')
+DROP TABLE MargeCreoQueOdioGDD.BI_Rango_Horario;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dia')
+DROP TABLE MargeCreoQueOdioGDD.BI_Dia;
+
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tiempo')
+DROP TABLE MargeCreoQueOdioGDD.BI_Tiempo;
+GO
+
+/* --------------------------------------------- Creacion de funciones --------------------------------------------- */
+CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad
+BEGIN DECLARE @edad int;
+IF (MONTH(@fecha_nacimiento)!=MONTH(GETDATE()))
+	SET @edad = DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12;
+ELSE IF(DAY(@fecha_nacimiento) > DAY(GETDATE()))
+	SET @edad = (DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12)-1;
+ELSE 
+BEGIN
+	SET @edad = DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12;
+END
+	RETURN @edad;
+END
+GO
+
+CREATE FUNCTION MargeCreoQueOdioGDD.rangoEtario (@edad int) RETURNS varchar(20) AS -- te devuelve el rango etario al que pertenece
+BEGIN DECLARE @valor varchar(10);
+IF (@edad >= 25 AND @edad < 35)
+BEGIN
+	SET @valor = '[25 - 35]';
+END
+ELSE IF (@edad >= 35 AND @edad < 55)
+BEGIN
+	SET @valor = '[35 - 55]';
+END
+ELSE IF(@edad >= 55)
+BEGIN
+	SET @valor = '+55';
+END
+	RETURN @valor;
+END
+GO
+
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tiempo (
@@ -52,11 +162,13 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Rango_Etario (
 	PRIMARY KEY (ID_RANGO_ETARIO)
 );
 
+/*
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago (
 	ID_TIPO_PAGO INT IDENTITY(1,1),
 	MEDIO_PAGO NVARCHAR(255) NOT NULL,
 	PRIMARY KEY (ID_TIPO_PAGO)
 );
+*/
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Local ( /* Creo que si bien lo dice el enunciado, no lo usamos */
 	ID_TIPO_LOCAL INT IDENTITY(1,1),
@@ -230,9 +342,6 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
 /* --------------------------------------------- Alter tables --------------------------------------------- */
 
 -- Localidad
-ALTER TABLE MargeCreoQueOdioGDD.BI_Localidad
-ADD CONSTRAINT FK_BI_PROVINCIA_ID
-FOREIGN KEY (ID_PROVINCIA) REFERENCES MargeCreoQueOdioGDD.BI_Provincia
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Localidad
 ADD CONSTRAINT FK_BI_PROVINCIA_ID
@@ -249,7 +358,7 @@ FOREIGN KEY (ID_TIPO_LOCAL) REFERENCES MargeCreoQueOdioGDD.BI_Tipo_Local
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Local
 ADD CONSTRAINT FK_BI_CATEGORIA_LOCAL_ID
-FOREIGN KEY (ID_CATEGORIA_LOCAL) REFERENCES MargeCreoQueOdioGDD.BI_Categoria_Local
+FOREIGN KEY (ID_CATEGORIA) REFERENCES MargeCreoQueOdioGDD.BI_Categoria_Local
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Local
 ADD CONSTRAINT FK_BI_LOCALIDAD_LOCAL_ID
@@ -411,7 +520,7 @@ FOREIGN KEY (ID_TIEMPO_ALTA) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Tipo_Cupon
 ADD CONSTRAINT FK_BI_TIPO_CUPON_ID
-FOREIGN KEY (ID_TIPO_CUPON) REFERENCES MargeCreoQueOdioGDD.BI_Tipo_Cupon
+FOREIGN KEY (ID_TIPO) REFERENCES MargeCreoQueOdioGDD.BI_Tipo_Cupon
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
 ADD CONSTRAINT FK_BI_DIA_ALTA_ID
