@@ -1,9 +1,6 @@
 USE GD1C2023
 GO
 
-<<<<<<< HEAD
-/* --------------------------------------------- Limpiar tablas --------------------------------------------- */
-=======
 /* --------------------------------------------- Limpiar funciones --------------------------------------------- */
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerHora')
 DROP FUNCTION MargeCreoQueOdioGDD.obtenerHora
@@ -19,7 +16,6 @@ DROP FUNCTION MargeCreoQueOdioGDD.edadActual
 
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
 
->>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
 DROP TABLE MargeCreoQueOdioGDD.BI_Reclamo;
 
@@ -97,20 +93,6 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Tiempo;
 GO
 
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
-<<<<<<< HEAD
-CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad
-BEGIN DECLARE @edad int;
-IF (MONTH(@fecha_nacimiento)!=MONTH(GETDATE()))
-	SET @edad = DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12;
-ELSE IF(DAY(@fecha_nacimiento) > DAY(GETDATE()))
-	SET @edad = (DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12)-1;
-ELSE 
-BEGIN
-	SET @edad = DATEDIFF(MONTH, @fecha_nacimiento, GETDATE())/12;
-END
-	RETURN @edad;
-END
-=======
 CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad segun una fecha de nacimiento
 BEGIN DECLARE @edad int;
       DECLARE @fecha_actual datetime2(3) = GETDATE();
@@ -119,35 +101,17 @@ BEGIN DECLARE @edad int;
         SET @edad = @edad - 1;
     RETURN @edad;
 END;
->>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 GO
 
 CREATE FUNCTION MargeCreoQueOdioGDD.rangoEtario (@edad int) RETURNS varchar(20) AS -- te devuelve el rango etario al que pertenece
 BEGIN DECLARE @valor varchar(10);
-<<<<<<< HEAD
-IF (@edad >= 25 AND @edad < 35)
-BEGIN
-	SET @valor = '[25 - 35]';
-END
-ELSE IF (@edad >= 35 AND @edad < 55)
-BEGIN
-	SET @valor = '[35 - 55]';
-END
-ELSE IF(@edad >= 55)
-BEGIN
-	SET @valor = '+55';
-END
-=======
     IF (@edad >= 25 AND @edad < 35) BEGIN SET @valor = '[25 - 35]' END
     ELSE IF (@edad >= 35 AND @edad < 55) BEGIN SET @valor = '[35 - 55]' END
     ELSE IF(@edad >= 55) BEGIN SET @valor = '+55' END
->>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 	RETURN @valor;
 END
 GO
 
-<<<<<<< HEAD
-=======
 CREATE FUNCTION MargeCreoQueOdioGDD.obtenerHora(@fechaHora datetime) RETURNS int AS -- recibe un datetime y devuelve solo la hora como int
 BEGIN DECLARE @hora int;
     SET @hora = DATEPART(HOUR, @fechaHora);
@@ -168,7 +132,6 @@ BEGIN DECLARE @rango varchar(20);
     RETURN @rango;
 END
 GO
->>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tiempo (
@@ -219,23 +182,16 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Rango_Etario (
 	EDAD_FINAL INT NOT NULL,
 	PRIMARY KEY (ID_RANGO_ETARIO)
 );
-<<<<<<< HEAD
 
-=======
->>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
-/*
+/*														Creo que si bien lo dice el enunciado, no lo usamos
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago (
 	ID_TIPO_PAGO INT IDENTITY(1,1),
 	MEDIO_PAGO NVARCHAR(255) NOT NULL,
 	PRIMARY KEY (ID_TIPO_PAGO)
-<<<<<<< HEAD
 );
 */
-=======
-);*/
->>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 
-CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Local ( /* Creo que si bien lo dice el enunciado, no lo usamos */
+CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Local ( /*		Creo que si bien lo dice el enunciado, no lo usamos	*/
 	ID_TIPO_LOCAL INT IDENTITY(1,1),
 	TIPO_LOCAL NVARCHAR(255),
 	PRIMARY KEY (ID_TIPO_LOCAL)
@@ -317,48 +273,6 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Envio (
 	PRIMARY KEY (NRO_ENVIO)
 );
 
-CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
-	NRO_PEDIDO INT NOT NULL,
-	ID_TIEMPO_PEDIDO INT NOT NULL, -- FK
-	ID_DIA_PEDIDO INT NOT NULL, -- FK
-	ID_RANGO_HORARIO_PEDIDO INT NOT NULL, -- FK
-	ID_TIEMPO_ENTREGA INT NOT NULL, -- FK
-	ID_DIA_ENTREGA INT NOT NULL, -- FK
-	ID_RANGO_HORARIO_ENTREGA INT NOT NULL, -- FK
-	ID_LOCAL INT NOT NULL, -- FK
-	ID_ENVIO INT NOT NULL, -- FK
-	ID_ESTADO INT NOT NULL, -- FK
-	ID_USUARIO INT NOT NULL, -- FK
-	TARIFA_SERVICIO FLOAT NOT NULL,
-	TOTAL_PRODUCTOS FLOAT NOT NULL,
-	TOTAL_CUPONES FLOAT NOT NULL,
-	TOTAL_SERVICIO FLOAT NOT NULL,
-	TOTAL_PEDIDO FLOAT NOT NULL,
-	CALIFICACION DECIMAL(5,1),
-	ESTADO NVARCHAR(255),
-	PRIMARY KEY (NRO_PEDIDO)
-);
-
-CREATE TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria (
-	NRO_ENVIO_MENSAJERIA INT NOT NULL,
-	ID_LOCALIDAD_ORIGEN INT NOT NULL, -- FK
-	ID_TIPO_PAQUETE INT NOT NULL, -- FK
-	ID_ENVIO INT NOT NULL, -- FK
-	ID_ESTADO INT NOT NULL, -- FK
-	ID_TIEMPO_PEDIDO INT NOT NULL, -- FK
-	ID_DIA_PEDIDO INT NOT NULL, -- FK
-	ID_RANGO_HORARIO_PEDIDO INT NOT NULL, -- FK
-	ID_TIEMPO_ENTREGA INT NOT NULL, -- FK
-	ID_DIA_ENTREGA INT NOT NULL, -- FK
-	ID_RANGO_HORARIO_ENTREGA INT NOT NULL, -- FK
-	--ID_USUARIO INT NOT NULL, -- FK
-	--DISTANCIA_KMS INT NOT NULL,
-	--CALIFICACION DECIMAL(5,1),
-	--PRECIO_POR_SEGURO FLOAT NOT NULL,
-	TOTAL_SERVICIO_MENSAJERIA FLOAT NOT NULL,
-	PRIMARY KEY (NRO_ENVIO_MENSAJERIA)
-);
-
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Reclamo (
 	ID_TIPO_RECLAMO INT IDENTITY(1,1),
 	TIPO_RECLAMO NVARCHAR(255),
@@ -404,10 +318,9 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
 	PRIMARY KEY (CODIGO)
 );
 
-/* --------------------------------------------- Alter tables --------------------------------------------- */
+/* --------------------------------------------- Alter tables de las tablas dimensionales --------------------------------------------- */
 
 -- Localidad
-
 ALTER TABLE MargeCreoQueOdioGDD.BI_Localidad
 ADD CONSTRAINT FK_BI_PROVINCIA_ID
 FOREIGN KEY (ID_PROVINCIA) REFERENCES MargeCreoQueOdioGDD.BI_Provincia
@@ -454,6 +367,123 @@ FOREIGN KEY (ID_LOCALIDAD_DESTINO) REFERENCES MargeCreoQueOdioGDD.BI_Localidad
 ALTER TABLE MargeCreoQueOdioGDD.BI_Envio
 ADD CONSTRAINT FK_BI_REPARTIDOR_ENVIO_ID
 FOREIGN KEY (ID_REPARTIDOR) REFERENCES MargeCreoQueOdioGDD.BI_Repartidor
+
+-- Reclamo
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_ESTADO_RECLAMO_ID
+FOREIGN KEY (ID_ESTADO) REFERENCES MargeCreoQueOdioGDD.BI_Estado_Reclamo
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_TIPO_RECLAMO_ID
+FOREIGN KEY (ID_TIPO_RECLAMO) REFERENCES MargeCreoQueOdioGDD.BI_Tipo_Reclamo
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_TIEMPO_RECLAMO_INICIO_ID
+FOREIGN KEY (ID_TIEMPO_INICIO) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_DIA_RECLAMO_INICIO_ID
+FOREIGN KEY (ID_DIA_INICIO) REFERENCES MargeCreoQueOdioGDD.BI_Dia
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_RANGO_HORARIO_RECLAMO_INICIO_ID
+FOREIGN KEY (ID_RANGO_HORARIO_INICIO) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Horario
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_TIEMPO_RECLAMO_SOLUCION_ID
+FOREIGN KEY (ID_TIEMPO_SOLUCION) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_DIA_RECLAMO_SOLUCION_ID
+FOREIGN KEY (ID_DIA_SOLUCION) REFERENCES MargeCreoQueOdioGDD.BI_Dia
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_RANGO_HORARIO_RECLAMO_SOLUCION_ID
+FOREIGN KEY (ID_RANGO_HORARIO_SOLUCION) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Horario
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_OPERADOR_RECLAMO_ID
+FOREIGN KEY (ID_OPERADOR) REFERENCES MargeCreoQueOdioGDD.BI_Operador
+
+-- Cupones
+ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
+ADD CONSTRAINT FK_BI_TIEMPO_ALTA_ID
+FOREIGN KEY (ID_TIEMPO_ALTA) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Tipo_Cupon
+ADD CONSTRAINT FK_BI_TIPO_CUPON_ID
+FOREIGN KEY (ID_TIPO) REFERENCES MargeCreoQueOdioGDD.BI_Tipo_Cupon
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
+ADD CONSTRAINT FK_BI_DIA_ALTA_ID
+FOREIGN KEY (ID_DIA_ALTA) REFERENCES MargeCreoQueOdioGDD.BI_Dia
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
+ADD CONSTRAINT FK_BI_RANGO_HORARIO_ALTA_ID
+FOREIGN KEY (ID_RANGO_HORARIO_ALTA) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Horario
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
+ADD CONSTRAINT FK_BI_TIEMPO_CUPON_VENCIMIENTO_ID
+FOREIGN KEY (ID_TIEMPO_VENCIMIENTO) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
+ADD CONSTRAINT FK_BI_DIA_CUPON_VENCIMIENTO_ID
+FOREIGN KEY (ID_DIA_VENCIMIENTO) REFERENCES MargeCreoQueOdioGDD.BI_Dia
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
+ADD CONSTRAINT FK_BI_RANGO_HORARIO_CUPON_VENCIMIENTO_ID
+FOREIGN KEY (ID_RANGO_HORARIO_VENCIMIENTO) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Horario
+
+ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
+ADD CONSTRAINT FK_BI_USUARIO_CUPON_ID
+FOREIGN KEY (ID_USUARIO) REFERENCES MargeCreoQueOdioGDD.BI_Usuario
+
+/* --------------------------------------------- Tablas de hechos --------------------------------------------- */
+CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
+	NRO_PEDIDO INT NOT NULL,
+	ID_TIEMPO_PEDIDO INT NOT NULL, -- FK
+	ID_DIA_PEDIDO INT NOT NULL, -- FK
+	ID_RANGO_HORARIO_PEDIDO INT NOT NULL, -- FK
+	ID_TIEMPO_ENTREGA INT NOT NULL, -- FK
+	ID_DIA_ENTREGA INT NOT NULL, -- FK
+	ID_RANGO_HORARIO_ENTREGA INT NOT NULL, -- FK
+	ID_LOCAL INT NOT NULL, -- FK
+	ID_ENVIO INT NOT NULL, -- FK
+	ID_ESTADO INT NOT NULL, -- FK
+	ID_USUARIO INT NOT NULL, -- FK
+	TARIFA_SERVICIO FLOAT NOT NULL,
+	TOTAL_PRODUCTOS FLOAT NOT NULL,
+	TOTAL_CUPONES FLOAT NOT NULL,
+	TOTAL_SERVICIO FLOAT NOT NULL,
+	TOTAL_PEDIDO FLOAT NOT NULL,
+	TIEMPO_TOTAL_ENTREGA FLOAT NOT NULL, -- Esta es la diferencia entre la fecha en que se realizó el pedido y la fecha en que se entregó
+	CALIFICACION DECIMAL(5,1),
+	ESTADO NVARCHAR(255),
+	PRIMARY KEY (NRO_PEDIDO)
+);
+
+CREATE TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria (
+	NRO_ENVIO_MENSAJERIA INT NOT NULL,
+	ID_LOCALIDAD_ORIGEN INT NOT NULL, -- FK
+	ID_TIPO_PAQUETE INT NOT NULL, -- FK
+	ID_ENVIO INT NOT NULL, -- FK
+	ID_ESTADO INT NOT NULL, -- FK
+	ID_TIEMPO_PEDIDO INT NOT NULL, -- FK
+	ID_DIA_PEDIDO INT NOT NULL, -- FK
+	ID_RANGO_HORARIO_PEDIDO INT NOT NULL, -- FK
+	ID_TIEMPO_ENTREGA INT NOT NULL, -- FK
+	ID_DIA_ENTREGA INT NOT NULL, -- FK
+	ID_RANGO_HORARIO_ENTREGA INT NOT NULL, -- FK
+	--ID_USUARIO INT NOT NULL, -- FK
+	--DISTANCIA_KMS INT NOT NULL,
+	--CALIFICACION DECIMAL(5,1),
+	--PRECIO_POR_SEGURO FLOAT NOT NULL,
+	TOTAL_SERVICIO_MENSAJERIA FLOAT NOT NULL,
+	TIEMPO_TOTAL_ENTREGA FLOAT NOT NULL, -- Esta es la diferencia entre la fecha en que se realizó el pedido y la fecha en que se entregó
+	PRIMARY KEY (NRO_ENVIO_MENSAJERIA)
+);
+
+/* --------------------------------------------- Alter tables de las tablas de hechos --------------------------------------------- */
 
 -- Pedido
 ALTER TABLE MargeCreoQueOdioGDD.BI_Pedido
@@ -540,76 +570,6 @@ FOREIGN KEY (ID_ESTADO) REFERENCES MargeCreoQueOdioGDD.BI_Estado_Mensajeria
 /*ALTER TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria
 ADD CONSTRAINT FK_BI_USUARIO_MENSAJERIA_ID
 FOREIGN KEY (ID_USUARIO) REFERENCES MargeCreoQueOdioGDD.BI_Usuario*/
-
--- Reclamo
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_ESTADO_RECLAMO_ID
-FOREIGN KEY (ID_ESTADO) REFERENCES MargeCreoQueOdioGDD.BI_Estado_Reclamo
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_TIPO_RECLAMO_ID
-FOREIGN KEY (ID_TIPO_RECLAMO) REFERENCES MargeCreoQueOdioGDD.BI_Tipo_Reclamo
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_TIEMPO_RECLAMO_INICIO_ID
-FOREIGN KEY (ID_TIEMPO_INICIO) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_DIA_RECLAMO_INICIO_ID
-FOREIGN KEY (ID_DIA_INICIO) REFERENCES MargeCreoQueOdioGDD.BI_Dia
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_RANGO_HORARIO_RECLAMO_INICIO_ID
-FOREIGN KEY (ID_RANGO_HORARIO_INICIO) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Horario
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_TIEMPO_RECLAMO_SOLUCION_ID
-FOREIGN KEY (ID_TIEMPO_SOLUCION) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_DIA_RECLAMO_SOLUCION_ID
-FOREIGN KEY (ID_DIA_SOLUCION) REFERENCES MargeCreoQueOdioGDD.BI_Dia
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_RANGO_HORARIO_RECLAMO_SOLUCION_ID
-FOREIGN KEY (ID_RANGO_HORARIO_SOLUCION) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Horario
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
-ADD CONSTRAINT FK_BI_OPERADOR_RECLAMO_ID
-FOREIGN KEY (ID_OPERADOR) REFERENCES MargeCreoQueOdioGDD.BI_Operador
-
--- Cupones
-ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
-ADD CONSTRAINT FK_BI_TIEMPO_ALTA_ID
-FOREIGN KEY (ID_TIEMPO_ALTA) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Tipo_Cupon
-ADD CONSTRAINT FK_BI_TIPO_CUPON_ID
-FOREIGN KEY (ID_TIPO) REFERENCES MargeCreoQueOdioGDD.BI_Tipo_Cupon
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
-ADD CONSTRAINT FK_BI_DIA_ALTA_ID
-FOREIGN KEY (ID_DIA_ALTA) REFERENCES MargeCreoQueOdioGDD.BI_Dia
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
-ADD CONSTRAINT FK_BI_RANGO_HORARIO_ALTA_ID
-FOREIGN KEY (ID_RANGO_HORARIO_ALTA) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Horario
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
-ADD CONSTRAINT FK_BI_TIEMPO_CUPON_VENCIMIENTO_ID
-FOREIGN KEY (ID_TIEMPO_VENCIMIENTO) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
-ADD CONSTRAINT FK_BI_DIA_CUPON_VENCIMIENTO_ID
-FOREIGN KEY (ID_DIA_VENCIMIENTO) REFERENCES MargeCreoQueOdioGDD.BI_Dia
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
-ADD CONSTRAINT FK_BI_RANGO_HORARIO_CUPON_VENCIMIENTO_ID
-FOREIGN KEY (ID_RANGO_HORARIO_VENCIMIENTO) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Horario
-
-ALTER TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento
-ADD CONSTRAINT FK_BI_USUARIO_CUPON_ID
-FOREIGN KEY (ID_USUARIO) REFERENCES MargeCreoQueOdioGDD.BI_Usuario
 
 /* Creacion de procedures para cargar todas las tablas utilizando los datos ya migrados al modelo de datos transaccional */
 
