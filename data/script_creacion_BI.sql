@@ -1,7 +1,25 @@
 USE GD1C2023
 GO
 
+<<<<<<< HEAD
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
+=======
+/* --------------------------------------------- Limpiar funciones --------------------------------------------- */
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerHora')
+DROP FUNCTION MargeCreoQueOdioGDD.obtenerHora
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'rangoHorario')
+DROP FUNCTION MargeCreoQueOdioGDD.rangoHorario
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'rangoEtario')
+DROP FUNCTION MargeCreoQueOdioGDD.rangoEtario
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'edadActual')
+DROP FUNCTION MargeCreoQueOdioGDD.edadActual
+
+/* --------------------------------------------- Limpiar tablas --------------------------------------------- */
+
+>>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
 DROP TABLE MargeCreoQueOdioGDD.BI_Reclamo;
 
@@ -79,6 +97,7 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Tiempo;
 GO
 
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
+<<<<<<< HEAD
 CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad
 BEGIN DECLARE @edad int;
 IF (MONTH(@fecha_nacimiento)!=MONTH(GETDATE()))
@@ -91,10 +110,21 @@ BEGIN
 END
 	RETURN @edad;
 END
+=======
+CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad segun una fecha de nacimiento
+BEGIN DECLARE @edad int;
+      DECLARE @fecha_actual datetime2(3) = GETDATE();
+      SET @edad = DATEDIFF(YEAR, @fecha_nacimiento, @fecha_actual);
+      IF (MONTH(@fecha_nacimiento) > MONTH(@fecha_actual) OR (MONTH(@fecha_nacimiento) = MONTH(@fecha_actual) AND DAY(@fecha_nacimiento) > DAY(@fecha_actual)))
+        SET @edad = @edad - 1;
+    RETURN @edad;
+END;
+>>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 GO
 
 CREATE FUNCTION MargeCreoQueOdioGDD.rangoEtario (@edad int) RETURNS varchar(20) AS -- te devuelve el rango etario al que pertenece
 BEGIN DECLARE @valor varchar(10);
+<<<<<<< HEAD
 IF (@edad >= 25 AND @edad < 35)
 BEGIN
 	SET @valor = '[25 - 35]';
@@ -107,10 +137,38 @@ ELSE IF(@edad >= 55)
 BEGIN
 	SET @valor = '+55';
 END
+=======
+    IF (@edad >= 25 AND @edad < 35) BEGIN SET @valor = '[25 - 35]' END
+    ELSE IF (@edad >= 35 AND @edad < 55) BEGIN SET @valor = '[35 - 55]' END
+    ELSE IF(@edad >= 55) BEGIN SET @valor = '+55' END
+>>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 	RETURN @valor;
 END
 GO
 
+<<<<<<< HEAD
+=======
+CREATE FUNCTION MargeCreoQueOdioGDD.obtenerHora(@fechaHora datetime) RETURNS int AS -- recibe un datetime y devuelve solo la hora como int
+BEGIN DECLARE @hora int;
+    SET @hora = DATEPART(HOUR, @fechaHora);
+    RETURN @hora;
+END
+GO
+
+CREATE FUNCTION MargeCreoQueOdioGDD.rangoHorario (@hora int) RETURNS varchar(20) AS -- te devuelve el rango horario al que pertenece
+BEGIN DECLARE @rango varchar(20);
+    IF (@hora >= 8 AND @hora < 10) BEGIN SET @rango = '08:00 - 10:00' END
+    ELSE IF (@hora >= 10 AND @hora < 12) BEGIN SET @rango = '10:00 - 12:00' END
+    ELSE IF (@hora >= 12 AND @hora < 14) BEGIN SET @rango = '12:00 - 14:00' END
+    ELSE IF (@hora >= 14 AND @hora < 16) BEGIN SET @rango = '14:00 - 16:00' END
+    ELSE IF (@hora >= 16 AND @hora < 18) BEGIN SET @rango = '16:00 - 18:00' END
+    ELSE IF (@hora >= 18 AND @hora < 20) BEGIN SET @rango = '18:00 - 20:00' END
+    ELSE IF (@hora >= 20 AND @hora < 22) BEGIN SET @rango = '20:00 - 22:00' END
+    ELSE IF (@hora >= 22 OR @hora = 0) BEGIN SET @rango = '22:00 - 00:00' END
+    RETURN @rango;
+END
+GO
+>>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tiempo (
@@ -161,14 +219,21 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Rango_Etario (
 	EDAD_FINAL INT NOT NULL,
 	PRIMARY KEY (ID_RANGO_ETARIO)
 );
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 /*
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago (
 	ID_TIPO_PAGO INT IDENTITY(1,1),
 	MEDIO_PAGO NVARCHAR(255) NOT NULL,
 	PRIMARY KEY (ID_TIPO_PAGO)
+<<<<<<< HEAD
 );
 */
+=======
+);*/
+>>>>>>> 6e9eeef8081ee89b3af922710f219e3668063913
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Local ( /* Creo que si bien lo dice el enunciado, no lo usamos */
 	ID_TIPO_LOCAL INT IDENTITY(1,1),
