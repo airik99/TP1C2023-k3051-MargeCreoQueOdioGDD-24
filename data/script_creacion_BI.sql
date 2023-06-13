@@ -69,7 +69,8 @@ GO
 
 CREATE FUNCTION MargeCreoQueOdioGDD.rangoEtario (@edad int) RETURNS varchar(20) AS -- te devuelve el rango etario al que pertenece
 BEGIN DECLARE @valor varchar(10);
-    IF (@edad >= 25 AND @edad < 35) BEGIN SET @valor = '[25 - 35]' END
+    IF (@edad < 25) BEGIN SET @valor = '-25' END
+    ELSE IF (@edad >= 25 AND @edad < 35) BEGIN SET @valor = '[25 - 35]' END
     ELSE IF (@edad >= 35 AND @edad < 55) BEGIN SET @valor = '[35 - 55]' END
     ELSE IF(@edad >= 55) BEGIN SET @valor = '+55' END
 	RETURN @valor;
@@ -105,7 +106,7 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Provincia (
 );
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Localidad (
-	ID_LOCALIDAD INT IDENTITY(1,1),
+	ID_LOCALIDAD INT,
 	LOCALIDAD NVARCHAR(255) NOT NULL,
 	ID_PROVINCIA INT NOT NULL, -- FK
 	PRIMARY KEY (ID_LOCALIDAD)
@@ -311,6 +312,12 @@ FOREIGN KEY (ID_ENVIO) REFERENCES MargeCreoQueOdioGDD.BI_Envio
 GO
 
 /* Creacion de procedures para cargar todas las tablas utilizando los datos ya migrados al modelo de datos transaccional */
+
+-- Provincias
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_provincia')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_provincia
+GO
+
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_provincia
 AS
 BEGIN
@@ -321,5 +328,125 @@ BEGIN
 END
 GO
 
-exec MargeCreoQueOdioGDD.migrar_BI_provincia
+-- Localidades
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_localidad')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_localidad
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_localidad
+ AS
+  BEGIN
+	PRINT 'Se comienzan a migrar las localidades...'
+    INSERT INTO MargeCreoQueOdioGDD.BI_Localidad (ID_LOCALIDAD, LOCALIDAD, ID_PROVINCIA)
+		SELECT ID_LOCALIDAD, NOMBRE, ID_PROVINCIA
+		FROM MargeCreoQueOdioGDD.localidad
+  END
+GO
+
+-- Categorias
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_categoria_local')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_categoria_local
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_categoria_local
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar las categorias de los locales...'
+    DECLARE @CategoriaID INT
+    DECLARE curCategoria CURSOR FOR
+    SELECT ID_CATEGORIA, NOMBRE, ID_TIPO
+    FROM MargeCreoQueOdioGDD.categoria_local
+    DECLARE @Nombre VARCHAR(100);
+    DECLARE @TipoLocalID INT;
+    OPEN curCategoria;
+    FETCH NEXT FROM curCategoria INTO @CategoriaID, @Nombre, @TipoLocalID;
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        DECLARE @TipoLocalNombre VARCHAR(100);
+        SELECT @TipoLocalNombre = NOMBRE
+        FROM MargeCreoQueOdioGDD.tipo_local
+        WHERE ID_TIPO = @TipoLocalID;
+        INSERT INTO MargeCreoQueOdioGDD.BI_Categoria_Local (CATEGORIA, TIPO_LOCAL)
+        VALUES (@Nombre, @TipoLocalNombre);
+        FETCH NEXT FROM curCategoria INTO @CategoriaID, @Nombre, @TipoLocalID;
+    END
+    CLOSE curCategoria
+    DEALLOCATE curCategoria
+END
+GO
+
+-- Local
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_local')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_local
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_local
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los locales...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Local (NOMBRE, DESCRIPCION, ID_CATEGORIA, ID_LOCALIDAD)
+    SELECT L.NOMBRE, L.DESCRIPCION, L.ID_CATEGORIA, D.ID_LOCALIDAD
+    FROM MargeCreoQueOdioGDD.local L
+    INNER JOIN MargeCreoQueOdioGDD.direccion D ON L.ID_DIRECCION = D.ID_DIRECCION
+    INNER JOIN MargeCreoQueOdioGDD.BI_Localidad LD ON D.ID_LOCALIDAD = LD.ID_LOCALIDAD;
+END
+GO
+
+-- Repartidor
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_repartidor')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_repartidor
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_repartidor
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los repartidores...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Repartidor(RANGO_ETARIO, TIPO_MOVILIDAD)
+    SELECT MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(FECHA_NACIMIENTO)), T.TIPO_MOVILIDAD
+    FROM MargeCreoQueOdioGDD.repartidor R
+    INNER JOIN MargeCreoQueOdioGDD.tipo_movilidad T ON T.ID_TIPO = R.ID_TIPO_MOVILIDAD
+END
+GO
+
+-- Usuario
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_usuario')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_usuario
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_usuario
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los usuarios...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Usuario(RANGO_ETARIO, FECHA_NACIMIENTO)
+    SELECT MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(FECHA_NACIMIENTO)), FECHA_NACIMIENTO
+    FROM MargeCreoQueOdioGDD.usuario
+END
+GO
+
+-- Operador
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_operador')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_operador
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_operador
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los operadores...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Operador(RANGO_ETARIO)
+    SELECT MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(FECHA_NACIMIENTO))
+    FROM MargeCreoQueOdioGDD.operador
+END
+GO
+
 /* Creacion de vistas */
+
+
+/* Ejecución de la migración */
+
+exec MargeCreoQueOdioGDD.migrar_BI_provincia
+exec MargeCreoQueOdioGDD.migrar_BI_localidad
+exec MargeCreoQueOdioGDD.migrar_BI_categoria_local
+exec MargeCreoQueOdioGDD.migrar_BI_local
+exec MargeCreoQueOdioGDD.migrar_BI_repartidor
+exec MargeCreoQueOdioGDD.migrar_BI_usuario
+exec MargeCreoQueOdioGDD.migrar_BI_operador
