@@ -438,6 +438,21 @@ BEGIN
 END
 GO
 
+-- Tipo Paquete
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_tipo_paquete')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los tipos paquete...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Tipo_Paquete(TIPO_PAQUETE, VALOR_ASEGURADO)
+    SELECT TIPO_PAQUETE, VALOR_ASEGURADO
+    FROM MargeCreoQueOdioGDD.tipo_paquete
+END
+GO
+
 /* Creacion de vistas */
 
 
@@ -450,3 +465,4 @@ exec MargeCreoQueOdioGDD.migrar_BI_local
 exec MargeCreoQueOdioGDD.migrar_BI_repartidor
 exec MargeCreoQueOdioGDD.migrar_BI_usuario
 exec MargeCreoQueOdioGDD.migrar_BI_operador
+exec MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
