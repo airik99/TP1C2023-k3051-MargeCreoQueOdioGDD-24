@@ -2,6 +2,7 @@ USE GD1C2023
 GO
 
 /* --------------------------------------------- Limpiar funciones --------------------------------------------- */
+
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerHora')
 DROP FUNCTION MargeCreoQueOdioGDD.obtenerHora
 
@@ -57,6 +58,7 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
 GO
 
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
+
 CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad segun una fecha de nacimiento
 BEGIN DECLARE @edad int;
       DECLARE @fecha_actual datetime2(3) = GETDATE();
@@ -99,6 +101,7 @@ END
 GO
 
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
+
 CREATE TABLE MargeCreoQueOdioGDD.BI_Provincia (
 	ID_PROVINCIA INT,
 	PROVINCIA NVARCHAR(255) NOT NULL,
@@ -199,6 +202,7 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
 );
 
 /* --------------------------------------------- Tablas de hechos --------------------------------------------- */
+
 CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
 	NRO_PEDIDO INT NOT NULL,
 	ANIO_PEDIDO INT NOT NULL,
@@ -245,6 +249,7 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria (
 );
 
 /* --------------------------------------------- Alter tables de las tablas dimensionales --------------------------------------------- */
+
 -- Localidad
 ALTER TABLE MargeCreoQueOdioGDD.BI_Localidad
 ADD CONSTRAINT FK_BI_PROVINCIA_ID
@@ -453,16 +458,85 @@ BEGIN
 END
 GO
 
+-- Envio
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_envios')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envios
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los envios...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Envio(ID_LOCALIDAD_DESTINO, ID_REPARTIDOR, PRECIO_ENVIO, TIEMPO_ESTIMADO_ENTREGA)
+    SELECT localidad.ID_LOCALIDAD,
+		   envio.ID_REPARTIDOR,
+		   envio.PRECIO_ENVIO,
+		   envio.TIEMPO_ESTIMADO_ENTREGA
+    FROM MargeCreoQueOdioGDD.envio
+	INNER JOIN MargeCreoQueOdioGDD.direccion ON envio.ID_DIRECCION_DESTINO = direccion.ID_DIRECCION
+	INNER JOIN MargeCreoQueOdioGDD.localidad ON direccion.ID_LOCALIDAD = localidad.ID_LOCALIDAD
+END
+GO
+
+-- Pedido
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_pedidos')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_pedidos
+GO
+
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_pedidos
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los pedidos...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Pedido(NRO_PEDIDO, ANIO_PEDIDO, MES_PEDIDO, DIA_PEDIDO, RANGO_HORARIO_PEDIDO, ANIO_ENTREGA, MES_ENTREGA,
+											DIA_ENTREGA, RANGO_HORARIO_ENTREGA, ID_LOCAL, ID_ENVIO, TIPO_MEDIO_PAGO, ESTADO, ID_USUARIO, 
+											TIEMPO_TOTAL_ENTREGA, TARIFA_SERVICIO, TOTAL_PRODUCTOS, TOTAL_CUPONES, TOTAL_SERVICIO, TOTAL_PEDIDO, CALIFICACION)
+    SELECT pedido.NRO_PEDIDO,
+		   YEAR(pedido.FECHA_HORA_PEDIDO) AS ANIO_PEDIDO,
+		   MONTH(pedido.FECHA_HORA_PEDIDO) AS MES_PEDIDO,
+		   DAY(pedido.FECHA_HORA_PEDIDO) AS DIA_PEDIDO,
+		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(pedido.FECHA_HORA_PEDIDO)) AS RANGO_HORARIO_PEDIDO,
+		   YEAR(pedido.FECHA_HORA_ENTREGA) AS ANIO_ENTREGA,
+		   MONTH(pedido.FECHA_HORA_ENTREGA) AS MES_ENTREGA,
+		   DAY(pedido.FECHA_HORA_ENTREGA) AS DIA_ENTREGA,
+		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(pedido.FECHA_HORA_ENTREGA)) AS RANGO_HORARIO_ENTREGA,
+		   pedido.ID_LOCAL,
+		   pedido.ID_ENVIO,
+		   tipo_medio_pago.TIPO_PAGO,
+		   -- ESTADO
+		   pedido.ID_USUARIO,
+		   --(pedido.FECHA_HORA_ENTREGA - pedido.FECHA_HORA_PEDIDO) AS TIEMPO_TOTAL_ENTREGA,
+		   pedido.TARIFA_SERVICIO,
+		   pedido.TOTAL_PRODUCTOS,
+		   pedido.TOTAL_CUPONES,
+		   pedido.TOTAL_SERVICIO,
+		   pedido.TOTAL_PEDIDO,
+		   pedido.CALIFICACION
+    FROM MargeCreoQueOdioGDD.pedido
+	INNER JOIN MargeCreoQueOdioGDD.medio_de_pago ON pedido.ID_MEDIO_DE_PAGO = medio_de_pago.ID_MEDIO_PAGO
+	INNER JOIN MargeCreoQueOdioGDD.tipo_medio_pago ON medio_de_pago.ID_TIPO_MEDIO_PAGO = tipo_medio_pago.ID_TIPO
+END
+GO
+
+-- Envio Mensajeria
+
+
+-- Reclamo
+
+
+-- Cupon Descuento
+
+
 /* Creacion de vistas */
 
 
 /* Ejecución de la migración */
 
-exec MargeCreoQueOdioGDD.migrar_BI_provincia
-exec MargeCreoQueOdioGDD.migrar_BI_localidad
-exec MargeCreoQueOdioGDD.migrar_BI_categoria_local
-exec MargeCreoQueOdioGDD.migrar_BI_local
-exec MargeCreoQueOdioGDD.migrar_BI_repartidor
-exec MargeCreoQueOdioGDD.migrar_BI_usuario
-exec MargeCreoQueOdioGDD.migrar_BI_operador
-exec MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
+exec MargeCreoQueOdioGDD.migrar_BI_provincia;
+exec MargeCreoQueOdioGDD.migrar_BI_localidad;
+exec MargeCreoQueOdioGDD.migrar_BI_categoria_local;
+exec MargeCreoQueOdioGDD.migrar_BI_local;
+exec MargeCreoQueOdioGDD.migrar_BI_repartidor;
+exec MargeCreoQueOdioGDD.migrar_BI_usuario;
+exec MargeCreoQueOdioGDD.migrar_BI_operador;
+exec MargeCreoQueOdioGDD.migrar_tipos_paquetes;
+exec MargeCreoQueOdioGDD.migrar_BI_envios;
