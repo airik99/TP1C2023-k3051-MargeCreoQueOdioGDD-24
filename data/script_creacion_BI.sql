@@ -181,18 +181,18 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Envio (
 CREATE TABLE MargeCreoQueOdioGDD.BI_Reclamo (
 	NRO_RECLAMO INT NOT NULL,
 	ID_OPERADOR INT NOT NULL, -- FK
+	ID_PEDIDO INT NOT NULL, --FK -- POR AHI PODEMOS CAMBIARLO POR LOCAL
 	ESTADO NVARCHAR(255),
 	TIPO_RECLAMO NVARCHAR(255),
 	ANIO_INICIO INT NOT NULL,
 	MES_INICIO INT NOT NULL,
-	ID_PEDIDO INT NOT NULL, --FK -- POR AHI PODEMOS CAMBIARLO POR LOCAL
 	DIA_INICIO NVARCHAR(50),
 	RANGO_HORARIO_APERTURA NVARCHAR(255),
 	ANIO_SOLUCION INT NOT NULL,
 	MES_SOLUCION INT NOT NULL,
 	DIA_SOLUCION NVARCHAR(50) NOT NULL,
 	RANGO_HORARIO_SOLUCION NVARCHAR(255),
-	TIEMPO_RESOLUCION FLOAT NOT NULL, -- Tiempo que tardo en resolverse el reclamo (metrica)
+	TIEMPO_TOTAL_RESOLUCION FLOAT NOT NULL, -- Tiempo que tardo en resolverse el reclamo (metrica)
 	PRIMARY KEY (NRO_RECLAMO)
 );
 
@@ -537,7 +537,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
 AS
 BEGIN
     PRINT 'Se comienzan a migrar los envios mensajeria...';
-    INSERT INTO MargeCreoQueOdioGDD.BI_envio_mensajeria(NRO_ENVIO_MENSAJERIA, ID_LOCALIDAD_ORIGEN, ID_TIPO_PAQUETE, ID_ENVIO, TIPO_MEDIO_PAGO, ANIO_PEDIDO, MES_PEDIDO, DIA_PEDIDO,
+    INSERT INTO MargeCreoQueOdioGDD.BI_Envio_Mensajeria(NRO_ENVIO_MENSAJERIA, ID_LOCALIDAD_ORIGEN, ID_TIPO_PAQUETE, ID_ENVIO, TIPO_MEDIO_PAGO, ANIO_PEDIDO, MES_PEDIDO, DIA_PEDIDO,
 	                                                    RANGO_HORARIO_PEDIDO, ANIO_ENTREGA, MES_ENTREGA, DIA_ENTREGA, RANGO_HORARIO_ENTREGA, TIEMPO_TOTAL_ENTREGA, ESTADO, TOTAL_SERVICIO_MENSAJERIA)
     SELECT envio_mensajeria.NRO_ENVIO_MENSAJERIA,
 		   direccion.ID_LOCALIDAD,
@@ -565,10 +565,63 @@ END
 GO
 
 -- Reclamo
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_reclamo')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_reclamo
+GO
 
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_reclamo
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los reclamos...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Reclamo(NRO_RECLAMO, ID_OPERADOR, ID_PEDIDO, ESTADO, TIPO_RECLAMO, ANIO_INICIO, MES_INICIO, DIA_INICIO,
+											   RANGO_HORARIO_APERTURA, ANIO_SOLUCION, MES_SOLUCION, DIA_SOLUCION, RANGO_HORARIO_SOLUCION, TIEMPO_TOTAL_RESOLUCION)
+    SELECT reclamo.NRO_RECLAMO,
+		   reclamo.ID_OPERADOR,
+		   reclamo.ID_PEDIDO,
+		   estado_reclamo.NOMBRE,
+		   tipo_reclamo.TIPO_RECLAMO,
+		   YEAR(reclamo.FECHA_HORA_INICIO) AS ANIO_INICIO,
+		   MONTH(reclamo.FECHA_HORA_INICIO) AS MES_INICIO,
+		   DAY(reclamo.FECHA_HORA_INICIO) AS DIA_INICIO,
+		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(reclamo.FECHA_HORA_INICIO)) AS RANGO_HORARIO_APERTURA,
+		   YEAR(reclamo.FECHA_HORA_SOLUCION) AS ANIO_SOLUCION,
+		   MONTH(reclamo.FECHA_HORA_SOLUCION) AS MES_SOLUCION,
+		   DAY(reclamo.FECHA_HORA_SOLUCION) AS DIA_SOLUCION,
+		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(reclamo.FECHA_HORA_SOLUCION)) AS RANGO_HORARIO_SOLUCION,
+		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_INICIO, FECHA_HORA_SOLUCION) AS TIEMPO_TOTAL_RESOLUCION
+    FROM MargeCreoQueOdioGDD.reclamo
+	INNER JOIN MargeCreoQueOdioGDD.estado_reclamo ON reclamo.ID_ESTADO = estado_reclamo.ID_ESTADO
+	INNER JOIN MargeCreoQueOdioGDD.tipo_reclamo ON reclamo.ID_TIPO_RECLAMO = tipo_reclamo.ID_TIPO_RECLAMO
+END
+GO
 
 -- Cupon Descuento
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_cupon_descuento')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_cupon_descuento
+GO
 
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_cupon_descuento
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los cupones de descuento...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Cupon_Descuento(CODIGO, ID_USUARIO, TIPO_CUPON, ANIO_ALTA, MES_ALTA, DIA_ALTA, RANGO_HORARIO_ALTA, 
+													   ANIO_VENCIMIENTO, MES_VENCIMIENTO, DIA_VENCIMIENTO, RANGO_HORARIO_VENCIMIENTO, MONTO)
+    SELECT cupon_descuento.CODIGO,
+		   cupon_descuento.ID_USUARIO,
+		   tipo_cupon.TIPO_CUPON,
+		   YEAR(cupon_descuento.FECHA_ALTA) AS ANIO_ALTA,
+		   MONTH(cupon_descuento.FECHA_ALTA) AS MES_ALTA,
+		   DAY(cupon_descuento.FECHA_ALTA) AS DIA_ALTA,
+		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(cupon_descuento.FECHA_ALTA)) AS RANGO_HORARIO_ALTA,
+		   YEAR(cupon_descuento.FECHA_VENCIMIENTO) AS ANIO_VENCIMIENTO,
+		   MONTH(cupon_descuento.FECHA_VENCIMIENTO) AS MES_VENCIMIENTO,
+		   DAY(cupon_descuento.FECHA_VENCIMIENTO) AS DIA_VENCIMIENTO,
+		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(cupon_descuento.FECHA_VENCIMIENTO)) AS RANGO_HORARIO_VENCIMIENTO,
+		   cupon_descuento.MONTO
+    FROM MargeCreoQueOdioGDD.cupon_descuento
+	INNER JOIN MargeCreoQueOdioGDD.tipo_cupon ON cupon_descuento.ID_TIPO_CUPON = tipo_cupon.ID_TIPO
+END
+GO
 
 /* Creacion de vistas */
 
@@ -586,3 +639,5 @@ exec MargeCreoQueOdioGDD.migrar_BI_tipo_paquete;
 exec MargeCreoQueOdioGDD.migrar_BI_envios;
 exec MargeCreoQueOdioGDD.migrar_BI_pedidos;
 exec MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria;
+exec MargeCreoQueOdioGDD.migrar_BI_reclamo;
+exec MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
