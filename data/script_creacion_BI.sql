@@ -15,6 +15,9 @@ DROP FUNCTION MargeCreoQueOdioGDD.rangoEtario
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'edadActual')
 DROP FUNCTION MargeCreoQueOdioGDD.edadActual
 
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'calcularDiferenciaMinutos')
+DROP FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos
+
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
@@ -58,6 +61,14 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
 GO
 
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
+
+CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME,@fecha_fin DATETIME) RETURNS FLOAT AS --te devuelve cuantos minutos pasaron desde la fecha inicio a la fecha fin
+BEGIN
+  DECLARE @diferencia_minutos FLOAT;
+  SET @diferencia_minutos = DATEDIFF(MINUTE, @fecha_inicio, @fecha_fin);
+  RETURN @diferencia_minutos;
+END;
+GO
 
 CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad segun una fecha de nacimiento
 BEGIN DECLARE @edad int;
@@ -460,7 +471,7 @@ GO
 
 -- Envio
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_envios')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envios
 GO
 
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envios
@@ -502,9 +513,9 @@ BEGIN
 		   pedido.ID_LOCAL,
 		   pedido.ID_ENVIO,
 		   tipo_medio_pago.TIPO_PAGO,
-		   -- ESTADO
+		   estado_pedido.NOMBRE,
 		   pedido.ID_USUARIO,
-		   --(pedido.FECHA_HORA_ENTREGA - pedido.FECHA_HORA_PEDIDO) AS TIEMPO_TOTAL_ENTREGA,
+		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_PEDIDO, FECHA_HORA_ENTREGA) AS TIEMPO_TOTAL_ENTREGA, 
 		   pedido.TARIFA_SERVICIO,
 		   pedido.TOTAL_PRODUCTOS,
 		   pedido.TOTAL_CUPONES,
@@ -512,13 +523,46 @@ BEGIN
 		   pedido.TOTAL_PEDIDO,
 		   pedido.CALIFICACION
     FROM MargeCreoQueOdioGDD.pedido
+	INNER JOIN MargeCreoQueOdioGDD.estado_pedido ON pedido.ID_ESTADO = estado_pedido.ID_ESTADO
 	INNER JOIN MargeCreoQueOdioGDD.medio_de_pago ON pedido.ID_MEDIO_DE_PAGO = medio_de_pago.ID_MEDIO_PAGO
 	INNER JOIN MargeCreoQueOdioGDD.tipo_medio_pago ON medio_de_pago.ID_TIPO_MEDIO_PAGO = tipo_medio_pago.ID_TIPO
 END
 GO
-
 -- Envio Mensajeria
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_envio_mensajeria')
+DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
+GO
 
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los envios mensajeria...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_envio_mensajeria(NRO_ENVIO_MENSAJERIA, ID_LOCALIDAD_ORIGEN, ID_TIPO_PAQUETE, ID_ENVIO, TIPO_MEDIO_PAGO, ANIO_PEDIDO, MES_PEDIDO, DIA_PEDIDO,
+	                                                    RANGO_HORARIO_PEDIDO, ANIO_ENTREGA, MES_ENTREGA, DIA_ENTREGA, RANGO_HORARIO_ENTREGA, TIEMPO_TOTAL_ENTREGA, ESTADO, TOTAL_SERVICIO_MENSAJERIA)
+    SELECT envio_mensajeria.NRO_ENVIO_MENSAJERIA,
+		   direccion.ID_LOCALIDAD,
+		   tipo_paquete.ID_TIPO_PAQUETE,
+		   tipo_medio_pago.TIPO_PAGO,
+		   envio_mensajeria.ID_ENVIO,
+		   YEAR(envio_mensajeria.FECHA_HORA_PEDIDO) AS ANIO_PEDIDO,
+		   MONTH(envio_mensajeria.FECHA_HORA_PEDIDO) AS MES_PEDIDO,
+		   DAY(envio_mensajeria.FECHA_HORA_PEDIDO) AS DIA_PEDIDO,
+		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(envio_mensajeria.FECHA_HORA_PEDIDO)) AS RANGO_HORARIO_PEDIDO,
+		   YEAR(envio_mensajeria.FECHA_HORA_ENTREGA) AS ANIO_ENTREGA,
+		   MONTH(envio_mensajeria.FECHA_HORA_ENTREGA) AS MES_ENTREGA,
+		   DAY(envio_mensajeria.FECHA_HORA_ENTREGA) AS DIA_ENTREGA,
+		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(envio_mensajeria.FECHA_HORA_ENTREGA)) AS RANGO_HORARIO_ENTREGA,
+		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_PEDIDO, FECHA_HORA_ENTREGA) AS TIEMPO_TOTAL_ENTREGA, 
+		   estado_mensajeria.NOMBRE,
+		   envio_mensajeria.TOTAL_SERVICIO_MENSAJERIA
+    FROM MargeCreoQueOdioGDD.envio_mensajeria
+	INNER JOIN MargeCreoQueOdioGDD.direccion ON envio_mensajeria.ID_DIRECCION_ORIGEN = direccion.ID_DIRECCION
+	INNER JOIN MargeCreoQueOdioGDD.estado_mensajeria ON envio_mensajeria.ID_ESTADO = estado_mensajeria.ID_ESTADO
+	INNER JOIN MargeCreoQueOdioGDD.tipo_paquete ON envio_mensajeria.ID_TIPO_PAQUETE = tipo_paquete.ID_TIPO_PAQUETE
+	INNER JOIN MargeCreoQueOdioGDD.medio_de_pago ON envio_mensajeria.ID_MEDIO_PAGO = medio_de_pago.ID_MEDIO_PAGO
+	INNER JOIN MargeCreoQueOdioGDD.tipo_medio_pago ON medio_de_pago.ID_TIPO_MEDIO_PAGO = tipo_medio_pago.ID_TIPO
+END
+GO
 
 -- Reclamo
 
@@ -538,5 +582,7 @@ exec MargeCreoQueOdioGDD.migrar_BI_local;
 exec MargeCreoQueOdioGDD.migrar_BI_repartidor;
 exec MargeCreoQueOdioGDD.migrar_BI_usuario;
 exec MargeCreoQueOdioGDD.migrar_BI_operador;
-exec MargeCreoQueOdioGDD.migrar_tipos_paquetes;
+exec MargeCreoQueOdioGDD.migrar_BI_tipo_paquete;
 exec MargeCreoQueOdioGDD.migrar_BI_envios;
+exec MargeCreoQueOdioGDD.migrar_BI_pedidos;
+exec MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria;
