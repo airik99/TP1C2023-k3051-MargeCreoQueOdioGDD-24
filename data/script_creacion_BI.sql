@@ -77,9 +77,12 @@ IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_TiempoPromedioResoluci
     DROP VIEW MargeCreoQueOdioGDD.V_TiempoPromedioResolucion;
 GO
 
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_PromedioCalificacionMensual')
+    DROP VIEW MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
+GO
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
 
-CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS --te devuelve cuantos minutos pasaron desde la fecha inicio a la fecha fin
+CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS
 BEGIN
   DECLARE @diferencia_minutos FLOAT;
   SET @diferencia_minutos = DATEDIFF(MINUTE, @fecha_inicio, @fecha_fin);
@@ -87,7 +90,7 @@ BEGIN
 END;
 GO
 
-CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS -- te devuelve la edad segun una fecha de nacimiento
+CREATE FUNCTION MargeCreoQueOdioGDD.edadActual(@fecha_nacimiento datetime2(3)) RETURNS int AS 
 BEGIN DECLARE @edad int;
       DECLARE @fecha_actual datetime2(3) = GETDATE();
       SET @edad = DATEDIFF(YEAR, @fecha_nacimiento, @fecha_actual);
@@ -97,7 +100,7 @@ BEGIN DECLARE @edad int;
 END;
 GO
 
-CREATE FUNCTION MargeCreoQueOdioGDD.rangoEtario (@edad int) RETURNS varchar(20) AS -- te devuelve el rango etario al que pertenece
+CREATE FUNCTION MargeCreoQueOdioGDD.rangoEtario (@edad int) RETURNS varchar(20) AS
 BEGIN DECLARE @valor varchar(10);
     IF (@edad < 25) BEGIN SET @valor = '-25' END
     ELSE IF (@edad >= 25 AND @edad < 35) BEGIN SET @valor = '[25 - 35]' END
@@ -107,14 +110,14 @@ BEGIN DECLARE @valor varchar(10);
 END
 GO
 
-CREATE FUNCTION MargeCreoQueOdioGDD.obtenerHora(@fechaHora datetime) RETURNS int AS -- recibe un datetime y devuelve solo la hora como int
+CREATE FUNCTION MargeCreoQueOdioGDD.obtenerHora(@fechaHora datetime) RETURNS int AS 
 BEGIN DECLARE @hora int;
     SET @hora = DATEPART(HOUR, @fechaHora);
     RETURN @hora;
 END
 GO
 
-CREATE FUNCTION MargeCreoQueOdioGDD.rangoHorario (@hora int) RETURNS varchar(20) AS -- te devuelve el rango horario al que pertenece
+CREATE FUNCTION MargeCreoQueOdioGDD.rangoHorario (@hora int) RETURNS varchar(20) AS 
 BEGIN DECLARE @rango varchar(20);
     IF (@hora >= 8 AND @hora < 10) BEGIN SET @rango = '08:00 - 10:00' END
     ELSE IF (@hora >= 10 AND @hora < 12) BEGIN SET @rango = '10:00 - 12:00' END
@@ -661,17 +664,54 @@ GO
 
 /* Creacion de vistas */
 
---Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
---pedidos cancelados tanto los que cancela el usuario como el local)
+-- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
+-- pedidos cancelados tanto los que cancela el usuario como el local)
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados AS
-	SELECT l.ID_LOCAL, 
-		   p.DIA_PEDIDO AS DIA, 
-		   p.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA, 
-		   SUM(p.TOTAL_PRODUCTOS) AS MONTO_TOTAL
-	FROM MargeCreoQueOdioGDD.BI_Pedido p
-	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
-	WHERE p.ESTADO LIKE '%Cancelado%'
-	GROUP BY l.ID_LOCAL, p.DIA_PEDIDO, p.RANGO_HORARIO_PEDIDO, p.TOTAL_PRODUCTOS
+	SELECT 
+		l.ID_LOCAL, 
+		p.DIA_PEDIDO AS DIA, 
+		p.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA, 
+		SUM(p.TOTAL_PRODUCTOS) AS MONTO_TOTAL  -- aca creo que sería total_pedido
+	FROM 
+		MargeCreoQueOdioGDD.BI_Pedido p
+		INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
+	WHERE 
+		p.ESTADO LIKE '%Cancelado%'
+	GROUP BY 
+		l.ID_LOCAL, 
+		p.DIA_PEDIDO, 
+		p.RANGO_HORARIO_PEDIDO, 
+		p.TOTAL_PRODUCTOS
+GO
+
+-- Promedio mensual del valor asegurado (valor declarado por el usuario) de los paquetes enviados a través del servicio de mensajería en función del tipo de paquete
+CREATE VIEW MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual AS
+SELECT
+    p.MES_ENTREGA,
+    tp.TIPO_PAQUETE,
+    AVG(tp.VALOR_ASEGURADO) AS ValorAseguradoPromedio
+FROM
+    MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
+    INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Paquete tp ON em.ID_TIPO_PAQUETE = tp.ID_TIPO_PAQUETE
+    INNER JOIN MargeCreoQueOdioGDD.BI_Pedido p ON em.ID_ENVIO = p.ID_ENVIO
+GROUP BY
+    p.MES_ENTREGA,
+    tp.TIPO_PAQUETE;
+GO
+
+-- Promedio de calificación mensual por local
+CREATE VIEW MargeCreoQueOdioGDD.V_PromedioCalificacionMensual AS
+SELECT
+    ID_LOCAL,
+    ANIO_ENTREGA,
+    MES_ENTREGA,
+    AVG(CALIFICACION) AS PromedioCalificacion
+FROM
+    MargeCreoQueOdioGDD.BI_Pedido
+GROUP BY
+    ID_LOCAL,
+    ANIO_ENTREGA,
+    MES_ENTREGA
 GO
 
 -- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
@@ -735,5 +775,6 @@ EXEC MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
 /* Ejecución de las vistas */
 
 SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
+SELECT * FROM MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
 SELECT * FROM MargeCreoQueOdioGDD.V_TiempoPromedioResolucion;
