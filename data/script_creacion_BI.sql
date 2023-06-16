@@ -20,6 +20,7 @@ DROP FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos
 
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'diaSemana')
 DROP FUNCTION MargeCreoQueOdioGDD.diaSemana
+
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
@@ -63,6 +64,11 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
 GO
 
 /* --------------------------------------------- Limpiar vistas --------------------------------------------- */
+
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_MontoTotalXPedidosCancelados')
+    DROP VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
+GO
+
 IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_CantidadReclamosMensuales')
     DROP VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
 GO
@@ -139,6 +145,7 @@ BEGIN
     RETURN @DiaSemanaEspanol;
 END;
 GO
+
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Provincia (
@@ -556,6 +563,7 @@ BEGIN
 	INNER JOIN MargeCreoQueOdioGDD.tipo_medio_pago ON medio_de_pago.ID_TIPO_MEDIO_PAGO = tipo_medio_pago.ID_TIPO
 END
 GO
+
 -- Envio Mensajeria
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_envio_mensajeria')
 DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
@@ -591,6 +599,7 @@ BEGIN
 	INNER JOIN MargeCreoQueOdioGDD.tipo_medio_pago ON medio_de_pago.ID_TIPO_MEDIO_PAGO = tipo_medio_pago.ID_TIPO
 END
 GO
+
 -- Reclamo
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_reclamo')
 DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_reclamo
@@ -651,6 +660,20 @@ END
 GO
 
 /* Creacion de vistas */
+
+--Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
+--pedidos cancelados tanto los que cancela el usuario como el local)
+CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados AS
+	SELECT l.ID_LOCAL, 
+		   p.DIA_PEDIDO AS DIA, 
+		   p.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA, 
+		   SUM(p.TOTAL_PRODUCTOS) AS MONTO_TOTAL
+	FROM MargeCreoQueOdioGDD.BI_Pedido p
+	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
+	WHERE p.ESTADO LIKE '%Cancelado%'
+	GROUP BY l.ID_LOCAL, p.DIA_PEDIDO, p.RANGO_HORARIO_PEDIDO, p.TOTAL_PRODUCTOS
+GO
+
 -- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
 CREATE VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales AS
 SELECT
@@ -695,20 +718,22 @@ GO
 
 /* Ejecución de la migración */
 
-exec MargeCreoQueOdioGDD.migrar_BI_provincia;
-exec MargeCreoQueOdioGDD.migrar_BI_localidad;
-exec MargeCreoQueOdioGDD.migrar_BI_categoria_local;
-exec MargeCreoQueOdioGDD.migrar_BI_local;
-exec MargeCreoQueOdioGDD.migrar_BI_repartidor;
-exec MargeCreoQueOdioGDD.migrar_BI_usuario;
-exec MargeCreoQueOdioGDD.migrar_BI_operador;
-exec MargeCreoQueOdioGDD.migrar_BI_tipo_paquete;
-exec MargeCreoQueOdioGDD.migrar_BI_envios;
-exec MargeCreoQueOdioGDD.migrar_BI_pedidos;
-exec MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria;
-exec MargeCreoQueOdioGDD.migrar_BI_reclamo;
-exec MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
+EXEC MargeCreoQueOdioGDD.migrar_BI_provincia;
+EXEC MargeCreoQueOdioGDD.migrar_BI_localidad;
+EXEC MargeCreoQueOdioGDD.migrar_BI_categoria_local;
+EXEC MargeCreoQueOdioGDD.migrar_BI_local;
+EXEC MargeCreoQueOdioGDD.migrar_BI_repartidor;
+EXEC MargeCreoQueOdioGDD.migrar_BI_usuario;
+EXEC MargeCreoQueOdioGDD.migrar_BI_operador;
+EXEC MargeCreoQueOdioGDD.migrar_BI_tipo_paquete;
+EXEC MargeCreoQueOdioGDD.migrar_BI_envios;
+EXEC MargeCreoQueOdioGDD.migrar_BI_pedidos;
+EXEC MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria;
+EXEC MargeCreoQueOdioGDD.migrar_BI_reclamo;
+EXEC MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
 
 /* Ejecución de las vistas */
+
+SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
 SELECT * FROM MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
 SELECT * FROM MargeCreoQueOdioGDD.V_TiempoPromedioResolucion;
