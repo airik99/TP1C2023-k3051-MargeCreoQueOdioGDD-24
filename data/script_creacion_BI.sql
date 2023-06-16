@@ -62,6 +62,15 @@ IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Provincia')
 DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
 GO
 
+/* --------------------------------------------- Limpiar vistas --------------------------------------------- */
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_CantidadReclamosMensuales')
+    DROP VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
+GO
+
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_TiempoPromedioResolucion')
+    DROP VIEW MargeCreoQueOdioGDD.V_TiempoPromedioResolucion;
+GO
+
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
 
 CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS --te devuelve cuantos minutos pasaron desde la fecha inicio a la fecha fin
@@ -642,7 +651,47 @@ END
 GO
 
 /* Creacion de vistas */
-select * from MargeCreoQueOdioGDD.BI_Pedido
+-- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
+CREATE VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales AS
+SELECT
+    ANIO_INICIO,
+    MES_INICIO,
+    p.ID_LOCAL,
+    l.NOMBRE,
+    DIA_INICIO,
+    RANGO_HORARIO_APERTURA,
+    COUNT(*) AS CantidadReclamos
+FROM
+    MargeCreoQueOdioGDD.BI_Reclamo r
+    INNER JOIN MargeCreoQueOdioGDD.BI_Pedido p ON r.ID_PEDIDO = p.NRO_PEDIDO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
+GROUP BY
+    ANIO_INICIO,
+    MES_INICIO,
+    p.ID_LOCAL,
+    l.NOMBRE,
+    DIA_INICIO,
+    RANGO_HORARIO_APERTURA;
+GO
+
+-- Tiempo promedio de resolución de reclamos mensual según cada tipo de reclamo y rango etario de los operadores. El tiempo de resolución debe calcularse en minutos 
+-- y representa la diferencia entre la fecha/hora en que se realizó el reclamo y la fecha/hora que se resolvió
+CREATE VIEW MargeCreoQueOdioGDD.V_TiempoPromedioResolucion AS
+SELECT
+    ANIO_SOLUCION,
+    MES_SOLUCION,
+    r.TIPO_RECLAMO,
+    o.RANGO_ETARIO,
+    AVG(TIEMPO_TOTAL_RESOLUCION) AS TiempoPromedioResolucion
+FROM
+    MargeCreoQueOdioGDD.BI_Reclamo r
+    INNER JOIN MargeCreoQueOdioGDD.BI_Operador o ON r.ID_OPERADOR = o.ID_OPERADOR
+GROUP BY
+    ANIO_SOLUCION,
+    MES_SOLUCION,
+    r.TIPO_RECLAMO,
+    o.RANGO_ETARIO;
+GO
 
 /* Ejecución de la migración */
 
@@ -659,3 +708,7 @@ exec MargeCreoQueOdioGDD.migrar_BI_pedidos;
 exec MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria;
 exec MargeCreoQueOdioGDD.migrar_BI_reclamo;
 exec MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
+
+/* Ejecución de las vistas */
+SELECT * FROM MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
+SELECT * FROM MargeCreoQueOdioGDD.V_TiempoPromedioResolucion;
