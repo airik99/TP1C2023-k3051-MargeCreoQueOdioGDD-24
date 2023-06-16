@@ -17,7 +17,6 @@ DROP FUNCTION MargeCreoQueOdioGDD.edadActual
 
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'calcularDiferenciaMinutos')
 DROP FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos
-
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
@@ -62,7 +61,7 @@ GO
 
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
 
-CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME,@fecha_fin DATETIME) RETURNS FLOAT AS --te devuelve cuantos minutos pasaron desde la fecha inicio a la fecha fin
+CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS --te devuelve cuantos minutos pasaron desde la fecha inicio a la fecha fin
 BEGIN
   DECLARE @diferencia_minutos FLOAT;
   SET @diferencia_minutos = DATEDIFF(MINUTE, @fecha_inicio, @fecha_fin);
@@ -537,7 +536,7 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
 AS
 BEGIN
     PRINT 'Se comienzan a migrar los envios mensajeria...';
-    INSERT INTO MargeCreoQueOdioGDD.BI_Envio_Mensajeria(NRO_ENVIO_MENSAJERIA, ID_LOCALIDAD_ORIGEN, ID_TIPO_PAQUETE, ID_ENVIO, TIPO_MEDIO_PAGO, ANIO_PEDIDO, MES_PEDIDO, DIA_PEDIDO,
+    INSERT INTO MargeCreoQueOdioGDD.BI_Envio_Mensajeria(NRO_ENVIO_MENSAJERIA, ID_LOCALIDAD_ORIGEN, ID_TIPO_PAQUETE, TIPO_MEDIO_PAGO, ID_ENVIO, ANIO_PEDIDO, MES_PEDIDO, DIA_PEDIDO,
 	                                                    RANGO_HORARIO_PEDIDO, ANIO_ENTREGA, MES_ENTREGA, DIA_ENTREGA, RANGO_HORARIO_ENTREGA, TIEMPO_TOTAL_ENTREGA, ESTADO, TOTAL_SERVICIO_MENSAJERIA)
     SELECT envio_mensajeria.NRO_ENVIO_MENSAJERIA,
 		   direccion.ID_LOCALIDAD,
@@ -564,6 +563,7 @@ BEGIN
 END
 GO
 
+select ID_TIPO_MEDIO_PAGO from MargeCreoQueOdioGDD.medio_de_pago
 -- Reclamo
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_reclamo')
 DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_reclamo
