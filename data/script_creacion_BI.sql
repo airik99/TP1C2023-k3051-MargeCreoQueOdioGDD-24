@@ -562,8 +562,6 @@ BEGIN
 	INNER JOIN MargeCreoQueOdioGDD.tipo_medio_pago ON medio_de_pago.ID_TIPO_MEDIO_PAGO = tipo_medio_pago.ID_TIPO
 END
 GO
-
-select ID_TIPO_MEDIO_PAGO from MargeCreoQueOdioGDD.medio_de_pago
 -- Reclamo
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_reclamo')
 DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_reclamo
