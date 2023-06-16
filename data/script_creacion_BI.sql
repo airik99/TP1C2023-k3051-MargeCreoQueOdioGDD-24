@@ -17,6 +17,9 @@ DROP FUNCTION MargeCreoQueOdioGDD.edadActual
 
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'calcularDiferenciaMinutos')
 DROP FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'diaSemana')
+DROP FUNCTION MargeCreoQueOdioGDD.diaSemana
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
@@ -110,6 +113,23 @@ BEGIN DECLARE @rango varchar(20);
 END
 GO
 
+CREATE FUNCTION MargeCreoQueOdioGDD.DiaSemana (@DiaSemanaIngles NVARCHAR(50)) RETURNS NVARCHAR(50) AS
+BEGIN
+    DECLARE @DiaSemanaEspanol NVARCHAR(50);
+    SET @DiaSemanaEspanol = 
+        CASE UPPER(@DiaSemanaIngles)
+            WHEN 'MONDAY' THEN 'Lunes'
+            WHEN 'TUESDAY' THEN 'Martes'
+            WHEN 'WEDNESDAY' THEN 'Miercoles'
+            WHEN 'THURSDAY' THEN 'Jueves'
+            WHEN 'FRIDAY' THEN 'Viernes'
+            WHEN 'SATURDAY' THEN 'Sabado'
+            WHEN 'SUNDAY' THEN 'Domingo'
+            ELSE @DiaSemanaIngles
+        END;
+    RETURN @DiaSemanaEspanol;
+END;
+GO
 /* --------------------------------------------- Creacion de tablas dimensionales --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Provincia (
@@ -201,11 +221,11 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
 	TIPO_CUPON NVARCHAR(255),
 	ANIO_ALTA INT NOT NULL,
 	MES_ALTA INT NOT NULL,
-	DIA_ALTA INT NOT NULL,
+	DIA_ALTA NVARCHAR(255) NOT NULL,
 	RANGO_HORARIO_ALTA NVARCHAR(255),
 	ANIO_VENCIMIENTO INT NOT NULL,
 	MES_VENCIMIENTO INT NOT NULL,
-	DIA_VENCIMIENTO INT NOT NULL,
+	DIA_VENCIMIENTO NVARCHAR(255) NOT NULL,
 	RANGO_HORARIO_VENCIMIENTO NVARCHAR(255),
 	MONTO FLOAT,
 	PRIMARY KEY (CODIGO)
@@ -503,11 +523,11 @@ BEGIN
     SELECT pedido.NRO_PEDIDO,
 		   YEAR(pedido.FECHA_HORA_PEDIDO) AS ANIO_PEDIDO,
 		   MONTH(pedido.FECHA_HORA_PEDIDO) AS MES_PEDIDO,
-		   DAY(pedido.FECHA_HORA_PEDIDO) AS DIA_PEDIDO,
+		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, pedido.FECHA_HORA_PEDIDO)) AS DIA_PEDIDO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(pedido.FECHA_HORA_PEDIDO)) AS RANGO_HORARIO_PEDIDO,
 		   YEAR(pedido.FECHA_HORA_ENTREGA) AS ANIO_ENTREGA,
 		   MONTH(pedido.FECHA_HORA_ENTREGA) AS MES_ENTREGA,
-		   DAY(pedido.FECHA_HORA_ENTREGA) AS DIA_ENTREGA,
+		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, pedido.FECHA_HORA_ENTREGA)) AS DIA_ENTREGA,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(pedido.FECHA_HORA_ENTREGA)) AS RANGO_HORARIO_ENTREGA,
 		   pedido.ID_LOCAL,
 		   pedido.ID_ENVIO,
@@ -545,11 +565,11 @@ BEGIN
 		   envio_mensajeria.ID_ENVIO,
 		   YEAR(envio_mensajeria.FECHA_HORA_PEDIDO) AS ANIO_PEDIDO,
 		   MONTH(envio_mensajeria.FECHA_HORA_PEDIDO) AS MES_PEDIDO,
-		   DAY(envio_mensajeria.FECHA_HORA_PEDIDO) AS DIA_PEDIDO,
+		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, envio_mensajeria.FECHA_HORA_PEDIDO)) AS DIA_PEDIDO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(envio_mensajeria.FECHA_HORA_PEDIDO)) AS RANGO_HORARIO_PEDIDO,
 		   YEAR(envio_mensajeria.FECHA_HORA_ENTREGA) AS ANIO_ENTREGA,
 		   MONTH(envio_mensajeria.FECHA_HORA_ENTREGA) AS MES_ENTREGA,
-		   DAY(envio_mensajeria.FECHA_HORA_ENTREGA) AS DIA_ENTREGA,
+		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, envio_mensajeria.FECHA_HORA_ENTREGA)) AS DIA_ENTREGA,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(envio_mensajeria.FECHA_HORA_ENTREGA)) AS RANGO_HORARIO_ENTREGA,
 		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_PEDIDO, FECHA_HORA_ENTREGA) AS TIEMPO_TOTAL_ENTREGA, 
 		   estado_mensajeria.NOMBRE,
@@ -580,11 +600,11 @@ BEGIN
 		   tipo_reclamo.TIPO_RECLAMO,
 		   YEAR(reclamo.FECHA_HORA_INICIO) AS ANIO_INICIO,
 		   MONTH(reclamo.FECHA_HORA_INICIO) AS MES_INICIO,
-		   DAY(reclamo.FECHA_HORA_INICIO) AS DIA_INICIO,
+		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, reclamo.FECHA_HORA_INICIO)) AS DIA_INICIO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(reclamo.FECHA_HORA_INICIO)) AS RANGO_HORARIO_APERTURA,
 		   YEAR(reclamo.FECHA_HORA_SOLUCION) AS ANIO_SOLUCION,
 		   MONTH(reclamo.FECHA_HORA_SOLUCION) AS MES_SOLUCION,
-		   DAY(reclamo.FECHA_HORA_SOLUCION) AS DIA_SOLUCION,
+		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, reclamo.FECHA_HORA_SOLUCION)) AS DIA_SOLUCION,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(reclamo.FECHA_HORA_SOLUCION)) AS RANGO_HORARIO_SOLUCION,
 		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_INICIO, FECHA_HORA_SOLUCION) AS TIEMPO_TOTAL_RESOLUCION
     FROM MargeCreoQueOdioGDD.reclamo
@@ -609,11 +629,11 @@ BEGIN
 		   tipo_cupon.TIPO_CUPON,
 		   YEAR(cupon_descuento.FECHA_ALTA) AS ANIO_ALTA,
 		   MONTH(cupon_descuento.FECHA_ALTA) AS MES_ALTA,
-		   DAY(cupon_descuento.FECHA_ALTA) AS DIA_ALTA,
+		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, cupon_descuento.FECHA_ALTA)) AS DIA_ALTA,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(cupon_descuento.FECHA_ALTA)) AS RANGO_HORARIO_ALTA,
 		   YEAR(cupon_descuento.FECHA_VENCIMIENTO) AS ANIO_VENCIMIENTO,
 		   MONTH(cupon_descuento.FECHA_VENCIMIENTO) AS MES_VENCIMIENTO,
-		   DAY(cupon_descuento.FECHA_VENCIMIENTO) AS DIA_VENCIMIENTO,
+		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, cupon_descuento.FECHA_VENCIMIENTO)) AS DIA_VENCIMIENTO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(cupon_descuento.FECHA_VENCIMIENTO)) AS RANGO_HORARIO_VENCIMIENTO,
 		   cupon_descuento.MONTO
     FROM MargeCreoQueOdioGDD.cupon_descuento
@@ -622,7 +642,7 @@ END
 GO
 
 /* Creacion de vistas */
-
+select * from MargeCreoQueOdioGDD.BI_Pedido
 
 /* Ejecución de la migración */
 
