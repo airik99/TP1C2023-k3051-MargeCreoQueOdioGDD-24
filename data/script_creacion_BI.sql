@@ -21,6 +21,9 @@ DROP FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'diaSemana')
 DROP FUNCTION MargeCreoQueOdioGDD.diaSemana
 
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'mesDelAnio')
+DROP FUNCTION MargeCreoQueOdioGDD.mesDelAnio
+
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
@@ -69,6 +72,22 @@ IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_MontoTotalXPedidosCanc
     DROP VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
 GO
 
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_ValorEnvioPromedioMensualXLocalidad')
+    DROP VIEW MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad;
+GO
+
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_DesvioPromedioEnTiempoDeEntrega')
+    DROP VIEW MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega;
+GO
+
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_MontoTotalDeCuponesUsadosXMes')
+    DROP VIEW MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes;
+GO
+
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_ValorAseguradoPromedioMensual')
+    DROP VIEW MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual;
+GO
+
 IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_CantidadReclamosMensuales')
     DROP VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
 GO
@@ -80,6 +99,61 @@ GO
 IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_PromedioCalificacionMensual')
     DROP VIEW MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
 GO
+
+/* --------------------------------------------- Limpiar procedures --------------------------------------------- */
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_provincia')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_provincia
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_localidad')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_localidad
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_categoria_local')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_categoria_local
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_local')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_local
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_repartidor')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_repartidor
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_usuario')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_usuario
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_operador')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_operador
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_tipo_paquete')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_envios')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envios
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_pedidos')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_pedidos
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_envio_mensajeria')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_reclamo')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_reclamo
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_cupon_descuento')
+	DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_cupon_descuento
+GO
+
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
 
 CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS
@@ -131,7 +205,7 @@ BEGIN DECLARE @rango varchar(20);
 END
 GO
 
-CREATE FUNCTION MargeCreoQueOdioGDD.DiaSemana (@DiaSemanaIngles NVARCHAR(50)) RETURNS NVARCHAR(50) AS
+CREATE FUNCTION MargeCreoQueOdioGDD.diaSemana (@DiaSemanaIngles NVARCHAR(50)) RETURNS NVARCHAR(50) AS
 BEGIN
     DECLARE @DiaSemanaEspanol NVARCHAR(50);
     SET @DiaSemanaEspanol = 
@@ -146,6 +220,28 @@ BEGIN
             ELSE @DiaSemanaIngles
         END;
     RETURN @DiaSemanaEspanol;
+END;
+GO
+
+CREATE FUNCTION MargeCreoQueOdioGDD.mesDelAnio (@NumeroMes INT) RETURNS NVARCHAR(50) AS
+BEGIN
+    DECLARE @NombreMes NVARCHAR(50);
+    SET @NombreMes = 
+    	CASE @NumeroMes
+            WHEN '1' THEN 'Enero'
+            WHEN '2' THEN 'Febrero'
+            WHEN '3' THEN 'Marzo'
+            WHEN '4' THEN 'Abril'
+            WHEN '5' THEN 'Mayo'
+            WHEN '6' THEN 'Junio'
+            WHEN '7' THEN 'Julio'
+			WHEN '8' THEN 'Agosto'
+			WHEN '9' THEN 'Septiembre'
+			WHEN '10' THEN 'Octubre'
+			WHEN '11' THEN 'Noviembre'
+			WHEN '12' THEN 'Diciembre'
+		END;
+    RETURN @NombreMes;
 END;
 GO
 
@@ -223,11 +319,11 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Reclamo (
 	ESTADO NVARCHAR(255),
 	TIPO_RECLAMO NVARCHAR(255),
 	ANIO_INICIO INT NOT NULL,
-	MES_INICIO INT NOT NULL,
+	MES_INICIO NVARCHAR(50) NOT NULL,
 	DIA_INICIO NVARCHAR(50),
 	RANGO_HORARIO_APERTURA NVARCHAR(255),
 	ANIO_SOLUCION INT NOT NULL,
-	MES_SOLUCION INT NOT NULL,
+	MES_SOLUCION NVARCHAR(50) NOT NULL,
 	DIA_SOLUCION NVARCHAR(50) NOT NULL,
 	RANGO_HORARIO_SOLUCION NVARCHAR(255),
 	TIEMPO_TOTAL_RESOLUCION FLOAT NOT NULL, -- Tiempo que tardo en resolverse el reclamo (metrica)
@@ -239,11 +335,11 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
 	ID_USUARIO INT NOT NULL, -- FK
 	TIPO_CUPON NVARCHAR(255),
 	ANIO_ALTA INT NOT NULL,
-	MES_ALTA INT NOT NULL,
+	MES_ALTA NVARCHAR(50) NOT NULL,
 	DIA_ALTA NVARCHAR(255) NOT NULL,
 	RANGO_HORARIO_ALTA NVARCHAR(255),
 	ANIO_VENCIMIENTO INT NOT NULL,
-	MES_VENCIMIENTO INT NOT NULL,
+	MES_VENCIMIENTO NVARCHAR(50) NOT NULL,
 	DIA_VENCIMIENTO NVARCHAR(255) NOT NULL,
 	RANGO_HORARIO_VENCIMIENTO NVARCHAR(255),
 	MONTO FLOAT,
@@ -255,11 +351,11 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
 CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
 	NRO_PEDIDO INT NOT NULL,
 	ANIO_PEDIDO INT NOT NULL,
-	MES_PEDIDO INT NOT NULL,
+	MES_PEDIDO NVARCHAR(50) NOT NULL,
 	DIA_PEDIDO NVARCHAR(50) NOT NULL,
 	RANGO_HORARIO_PEDIDO NVARCHAR(255) NOT NULL,
 	ANIO_ENTREGA INT NOT NULL,
-	MES_ENTREGA INT NOT NULL,
+	MES_ENTREGA NVARCHAR(50) NOT NULL,
 	DIA_ENTREGA NVARCHAR(50) NOT NULL,
 	RANGO_HORARIO_ENTREGA NVARCHAR(255) NOT NULL,
 	ID_LOCAL INT NOT NULL, -- FK
@@ -284,11 +380,11 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria (
 	ID_ENVIO INT NOT NULL, -- FK
 	TIPO_MEDIO_PAGO NVARCHAR(255),
 	ANIO_PEDIDO INT NOT NULL,
-	MES_PEDIDO INT NOT NULL,
+	MES_PEDIDO NVARCHAR(50) NOT NULL,
 	DIA_PEDIDO NVARCHAR(50) NOT NULL,
 	RANGO_HORARIO_PEDIDO NVARCHAR(255),
 	ANIO_ENTREGA INT NOT NULL,
-	MES_ENTREGA INT NOT NULL,
+	MES_ENTREGA NVARCHAR(50) NOT NULL,
 	DIA_ENTREGA NVARCHAR(50) NOT NULL,
 	RANGO_HORARIO_ENTREGA NVARCHAR(255),
 	TIEMPO_TOTAL_ENTREGA FLOAT NOT NULL, -- Esta es la diferencia entre la fecha en que se realizó el pedido y la fecha en que se entregó
@@ -365,17 +461,13 @@ ADD CONSTRAINT FK_BI_ENVIO_MENSAJERIA_ID
 FOREIGN KEY (ID_ENVIO) REFERENCES MargeCreoQueOdioGDD.BI_Envio
 GO
 
-/* Creacion de procedures para cargar todas las tablas utilizando los datos ya migrados al modelo de datos transaccional */
+/* -------- Creacion de procedures para cargar todas las tablas utilizando los datos ya migrados al modelo de datos transaccional -------- */
 
 -- Provincias
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_provincia')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_provincia
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_provincia
 AS
 BEGIN
-	PRINT 'Se comienzan a migrar las pronvicias...'
+	PRINT 'Se comienzan a migrar las provincias...'
 	INSERT INTO MargeCreoQueOdioGDD.BI_Provincia(ID_PROVINCIA, PROVINCIA)
 	SELECT ID_PROVINCIA, NOMBRE
 	FROM MargeCreoQueOdioGDD.provincia
@@ -383,10 +475,6 @@ END
 GO
 
 -- Localidades
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_localidad')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_localidad
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_localidad
  AS
   BEGIN
@@ -398,10 +486,6 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_localidad
 GO
 
 -- Categorias
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_categoria_local')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_categoria_local
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_categoria_local
 AS
 BEGIN
@@ -430,10 +514,6 @@ END
 GO
 
 -- Local
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_local')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_local
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_local
 AS
 BEGIN
@@ -447,10 +527,6 @@ END
 GO
 
 -- Repartidor
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_repartidor')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_repartidor
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_repartidor
 AS
 BEGIN
@@ -463,10 +539,6 @@ END
 GO
 
 -- Usuario
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_usuario')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_usuario
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_usuario
 AS
 BEGIN
@@ -478,10 +550,6 @@ END
 GO
 
 -- Operador
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_operador')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_operador
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_operador
 AS
 BEGIN
@@ -493,10 +561,6 @@ END
 GO
 
 -- Tipo Paquete
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_tipo_paquete')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_tipo_paquete
 AS
 BEGIN
@@ -508,10 +572,6 @@ END
 GO
 
 -- Envio
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_envios')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envios
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envios
 AS
 BEGIN
@@ -528,10 +588,6 @@ END
 GO
 
 -- Pedido
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_pedidos')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_pedidos
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_pedidos
 AS
 BEGIN
@@ -541,11 +597,11 @@ BEGIN
 											TIEMPO_TOTAL_ENTREGA, TARIFA_SERVICIO, TOTAL_PRODUCTOS, TOTAL_CUPONES, TOTAL_SERVICIO, TOTAL_PEDIDO, CALIFICACION)
     SELECT pedido.NRO_PEDIDO,
 		   YEAR(pedido.FECHA_HORA_PEDIDO) AS ANIO_PEDIDO,
-		   MONTH(pedido.FECHA_HORA_PEDIDO) AS MES_PEDIDO,
+		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(pedido.FECHA_HORA_PEDIDO)) AS MES_PEDIDO,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, pedido.FECHA_HORA_PEDIDO)) AS DIA_PEDIDO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(pedido.FECHA_HORA_PEDIDO)) AS RANGO_HORARIO_PEDIDO,
 		   YEAR(pedido.FECHA_HORA_ENTREGA) AS ANIO_ENTREGA,
-		   MONTH(pedido.FECHA_HORA_ENTREGA) AS MES_ENTREGA,
+		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(pedido.FECHA_HORA_ENTREGA)) AS MES_ENTREGA,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, pedido.FECHA_HORA_ENTREGA)) AS DIA_ENTREGA,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(pedido.FECHA_HORA_ENTREGA)) AS RANGO_HORARIO_ENTREGA,
 		   pedido.ID_LOCAL,
@@ -568,10 +624,6 @@ END
 GO
 
 -- Envio Mensajeria
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_envio_mensajeria')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
 AS
 BEGIN
@@ -584,11 +636,11 @@ BEGIN
 		   tipo_medio_pago.TIPO_PAGO,
 		   envio_mensajeria.ID_ENVIO,
 		   YEAR(envio_mensajeria.FECHA_HORA_PEDIDO) AS ANIO_PEDIDO,
-		   MONTH(envio_mensajeria.FECHA_HORA_PEDIDO) AS MES_PEDIDO,
+		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(envio_mensajeria.FECHA_HORA_PEDIDO)) AS MES_PEDIDO,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, envio_mensajeria.FECHA_HORA_PEDIDO)) AS DIA_PEDIDO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(envio_mensajeria.FECHA_HORA_PEDIDO)) AS RANGO_HORARIO_PEDIDO,
 		   YEAR(envio_mensajeria.FECHA_HORA_ENTREGA) AS ANIO_ENTREGA,
-		   MONTH(envio_mensajeria.FECHA_HORA_ENTREGA) AS MES_ENTREGA,
+		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(envio_mensajeria.FECHA_HORA_ENTREGA)) AS MES_ENTREGA,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, envio_mensajeria.FECHA_HORA_ENTREGA)) AS DIA_ENTREGA,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(envio_mensajeria.FECHA_HORA_ENTREGA)) AS RANGO_HORARIO_ENTREGA,
 		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_PEDIDO, FECHA_HORA_ENTREGA) AS TIEMPO_TOTAL_ENTREGA, 
@@ -604,10 +656,6 @@ END
 GO
 
 -- Reclamo
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_reclamo')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_reclamo
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_reclamo
 AS
 BEGIN
@@ -620,11 +668,11 @@ BEGIN
 		   estado_reclamo.NOMBRE,
 		   tipo_reclamo.TIPO_RECLAMO,
 		   YEAR(reclamo.FECHA_HORA_INICIO) AS ANIO_INICIO,
-		   MONTH(reclamo.FECHA_HORA_INICIO) AS MES_INICIO,
+		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(reclamo.FECHA_HORA_INICIO)) AS MES_INICIO,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, reclamo.FECHA_HORA_INICIO)) AS DIA_INICIO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(reclamo.FECHA_HORA_INICIO)) AS RANGO_HORARIO_APERTURA,
 		   YEAR(reclamo.FECHA_HORA_SOLUCION) AS ANIO_SOLUCION,
-		   MONTH(reclamo.FECHA_HORA_SOLUCION) AS MES_SOLUCION,
+		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(reclamo.FECHA_HORA_SOLUCION)) AS MES_SOLUCION,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, reclamo.FECHA_HORA_SOLUCION)) AS DIA_SOLUCION,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(reclamo.FECHA_HORA_SOLUCION)) AS RANGO_HORARIO_SOLUCION,
 		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_INICIO, FECHA_HORA_SOLUCION) AS TIEMPO_TOTAL_RESOLUCION
@@ -635,10 +683,6 @@ END
 GO
 
 -- Cupon Descuento
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_cupon_descuento')
-DROP PROCEDURE MargeCreoQueOdioGDD.migrar_BI_cupon_descuento
-GO
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_cupon_descuento
 AS
 BEGIN
@@ -649,11 +693,11 @@ BEGIN
 		   cupon_descuento.ID_USUARIO,
 		   tipo_cupon.TIPO_CUPON,
 		   YEAR(cupon_descuento.FECHA_ALTA) AS ANIO_ALTA,
-		   MONTH(cupon_descuento.FECHA_ALTA) AS MES_ALTA,
+		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(cupon_descuento.FECHA_ALTA)) AS MES_ALTA,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, cupon_descuento.FECHA_ALTA)) AS DIA_ALTA,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(cupon_descuento.FECHA_ALTA)) AS RANGO_HORARIO_ALTA,
 		   YEAR(cupon_descuento.FECHA_VENCIMIENTO) AS ANIO_VENCIMIENTO,
-		   MONTH(cupon_descuento.FECHA_VENCIMIENTO) AS MES_VENCIMIENTO,
+		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(cupon_descuento.FECHA_VENCIMIENTO)) AS MES_VENCIMIENTO,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, cupon_descuento.FECHA_VENCIMIENTO)) AS DIA_VENCIMIENTO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(cupon_descuento.FECHA_VENCIMIENTO)) AS RANGO_HORARIO_VENCIMIENTO,
 		   cupon_descuento.MONTO
@@ -662,26 +706,91 @@ BEGIN
 END
 GO
 
-/* Creacion de vistas */
+/* --------------------------------------------- Creacion de vistas --------------------------------------------- */
 
 -- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados AS
-	SELECT 
-		l.ID_LOCAL, 
-		p.DIA_PEDIDO AS DIA, 
-		p.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA, 
-		SUM(p.TOTAL_PRODUCTOS) AS MONTO_TOTAL  -- aca creo que sería total_pedido
-	FROM 
-		MargeCreoQueOdioGDD.BI_Pedido p
-		INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
-	WHERE 
-		p.ESTADO LIKE '%Cancelado%'
-	GROUP BY 
-		l.ID_LOCAL, 
-		p.DIA_PEDIDO, 
-		p.RANGO_HORARIO_PEDIDO, 
-		p.TOTAL_PRODUCTOS
+SELECT 
+	l.ID_LOCAL, 
+	p.DIA_PEDIDO AS DIA, 
+	p.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA, 
+	SUM(p.TOTAL_PRODUCTOS) AS MONTO_TOTAL  -- Asumo que lo que cobra el local es solo el costo total de los productos, el resto es de la app
+FROM 
+	MargeCreoQueOdioGDD.BI_Pedido p
+	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
+WHERE 
+	p.ESTADO LIKE '%Cancelado%'
+GROUP BY 
+	l.ID_LOCAL, 
+	p.DIA_PEDIDO, 
+	p.RANGO_HORARIO_PEDIDO, 
+	p.TOTAL_PRODUCTOS;
+GO
+
+-- Valor promedio mensual que tienen los envíos de pedidos en cada localidad.
+CREATE VIEW MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad AS
+SELECT
+    p.MES_ENTREGA,
+    e.ID_LOCALIDAD_DESTINO,
+    AVG(e.PRECIO_ENVIO) AS PROMEDIO_MENSUAL
+FROM
+    MargeCreoQueOdioGDD.BI_Pedido p
+	INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p.ID_ENVIO = e.NRO_ENVIO
+WHERE 
+	p.ESTADO NOT LIKE '%Cancelado%'
+GROUP BY
+    p.MES_ENTREGA, 
+	e.ID_LOCALIDAD_DESTINO;
+GO
+
+-- Desvío promedio en tiempo de entrega según el tipo de movilidad, el día de la semana y la franja horaria. El desvío debe calcularse en minutos 
+-- y representa la diferencia entre la fecha/hora en que se realizó el pedido y la fecha/hora que se entregó en comparación con los minutos de 
+-- tiempo estimados. Este indicador debe tener en cuenta todos los envíos, es decir, sumar tanto los envíos de pedidos como los de mensajería.
+CREATE VIEW MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega AS
+SELECT
+	r.TIPO_MOVILIDAD,
+	p.DIA_PEDIDO AS DIA_SEMANA,
+	p.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA
+	--(CASE WHEN p.TIEMPO_TOTAL_ENTREGA > e.TIEMPO_ESTIMADO_ENTREGA THEN AVG(p.TIEMPO_TOTAL_ENTREGA - e.TIEMPO_ESTIMADO_ENTREGA)
+	--WHEN p.TIEMPO_TOTAL_ENTREGA < e.TIEMPO_ESTIMADO_ENTREGA THEN AVG(e.TIEMPO_ESTIMADO_ENTREGA - p.TIEMPO_TOTAL_ENTREGA)) AS DESVIO_PROMEDIO
+FROM
+	MargeCreoQueOdioGDD.BI_Pedido p
+	INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p.ID_ENVIO = e.NRO_ENVIO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
+GROUP BY 
+	r.TIPO_MOVILIDAD, 
+	p.DIA_PEDIDO, 
+	p.RANGO_HORARIO_PEDIDO
+UNION
+SELECT 
+	r.TIPO_MOVILIDAD,
+	em.DIA_PEDIDO AS DIA_SEMANA,
+	em.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA
+	--(CASE WHEN (em.TIEMPO_TOTAL_ENTREGA > e.TIEMPO_ESTIMADO_ENTREGA) THEN AVG(em.TIEMPO_TOTAL_ENTREGA - e.TIEMPO_ESTIMADO_ENTREGA)
+	--WHEN (em.TIEMPO_TOTAL_ENTREGA < e.TIEMPO_ESTIMADO_ENTREGA) THEN AVG(e.TIEMPO_ESTIMADO_ENTREGA - em.TIEMPO_TOTAL_ENTREGA)) AS DESVIO_PROMEDIO
+FROM 
+	MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
+	INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON em.ID_ENVIO = e.NRO_ENVIO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
+GROUP BY 
+	r.TIPO_MOVILIDAD, 
+	em.DIA_PEDIDO, 
+	em.RANGO_HORARIO_PEDIDO;
+GO
+
+-- Monto total de los cupones utilizados por mes en función del rango etario de los usuarios.
+CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes AS
+SELECT
+	p.MES_PEDIDO AS MES,
+	u.RANGO_ETARIO,
+	SUM(p.TOTAL_CUPONES) AS MONTO_TOTAL_USADO
+FROM
+	MargeCreoQueOdioGDD.BI_Pedido p
+	INNER JOIN MargeCreoQueOdioGDD.BI_Usuario u ON p.ID_USUARIO = u.ID_USUARIO
+GROUP BY
+	p.MES_PEDIDO,
+	u.RANGO_ETARIO;
 GO
 
 -- Promedio mensual del valor asegurado (valor declarado por el usuario) de los paquetes enviados a través del servicio de mensajería en función del tipo de paquete
@@ -711,7 +820,7 @@ FROM
 GROUP BY
     ID_LOCAL,
     ANIO_ENTREGA,
-    MES_ENTREGA
+    MES_ENTREGA;
 GO
 
 -- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
@@ -756,7 +865,7 @@ GROUP BY
     o.RANGO_ETARIO;
 GO
 
-/* Ejecución de la migración */
+/* --------------------------------------------- Ejecución de la migración --------------------------------------------- */
 
 EXEC MargeCreoQueOdioGDD.migrar_BI_provincia;
 EXEC MargeCreoQueOdioGDD.migrar_BI_localidad;
@@ -772,9 +881,13 @@ EXEC MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria;
 EXEC MargeCreoQueOdioGDD.migrar_BI_reclamo;
 EXEC MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
 
-/* Ejecución de las vistas */
+/* --------------------------------------------- Ejecución de las vistas --------------------------------------------- */
 
 SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
+SELECT * FROM MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad;
+SELECT * FROM MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega;
+SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes; --ORDER BY MES, RANGO_ETARIO;
+SELECT * FROM MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
 SELECT * FROM MargeCreoQueOdioGDD.V_TiempoPromedioResolucion;
