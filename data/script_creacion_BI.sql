@@ -100,6 +100,10 @@ IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_PromedioCalificacionMe
     DROP VIEW MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
 GO
 
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_MontoMensualGenerado')
+    DROP VIEW MargeCreoQueOdioGDD.V_MontoMensualGenerado;
+GO
+
 /* --------------------------------------------- Limpiar procedures --------------------------------------------- */
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_BI_provincia')
@@ -157,8 +161,7 @@ GO
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
 
 CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS
-BEGIN
-  DECLARE @diferencia_minutos FLOAT;
+BEGIN DECLARE @diferencia_minutos FLOAT;
   SET @diferencia_minutos = DATEDIFF(MINUTE, @fecha_inicio, @fecha_fin);
   RETURN @diferencia_minutos;
 END;
@@ -206,8 +209,7 @@ END
 GO
 
 CREATE FUNCTION MargeCreoQueOdioGDD.diaSemana (@DiaSemanaIngles NVARCHAR(50)) RETURNS NVARCHAR(50) AS
-BEGIN
-    DECLARE @DiaSemanaEspanol NVARCHAR(50);
+BEGIN DECLARE @DiaSemanaEspanol NVARCHAR(50);
     SET @DiaSemanaEspanol = 
         CASE UPPER(@DiaSemanaIngles)
             WHEN 'MONDAY' THEN 'Lunes'
@@ -224,8 +226,7 @@ END;
 GO
 
 CREATE FUNCTION MargeCreoQueOdioGDD.mesDelAnio (@NumeroMes INT) RETURNS NVARCHAR(50) AS
-BEGIN
-    DECLARE @NombreMes NVARCHAR(50);
+BEGIN DECLARE @NombreMes NVARCHAR(50);
     SET @NombreMes = 
     	CASE @NumeroMes
             WHEN '1' THEN 'Enero'
@@ -312,6 +313,25 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Envio (
 	PRIMARY KEY (NRO_ENVIO)
 );
 
+CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
+	CODIGO INT NOT NULL,
+	ID_USUARIO INT NOT NULL, -- FK
+	TIPO_CUPON NVARCHAR(255),
+	ANIO_ALTA INT NOT NULL,
+	MES_ALTA NVARCHAR(50) NOT NULL,
+	DIA_ALTA NVARCHAR(255) NOT NULL,
+	RANGO_HORARIO_ALTA NVARCHAR(255),
+	ANIO_VENCIMIENTO INT NOT NULL,
+	MES_VENCIMIENTO NVARCHAR(50) NOT NULL,
+	DIA_VENCIMIENTO NVARCHAR(255) NOT NULL,
+	RANGO_HORARIO_VENCIMIENTO NVARCHAR(255),
+	RECLAMO NVARCHAR(10),
+	MONTO FLOAT,
+	PRIMARY KEY (CODIGO)
+);
+
+/* --------------------------------------------- Tablas de hechos --------------------------------------------- */
+
 CREATE TABLE MargeCreoQueOdioGDD.BI_Reclamo (
 	NRO_RECLAMO INT NOT NULL,
 	ID_OPERADOR INT NOT NULL, -- FK
@@ -329,24 +349,6 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Reclamo (
 	TIEMPO_TOTAL_RESOLUCION FLOAT NOT NULL, -- Tiempo que tardo en resolverse el reclamo (metrica)
 	PRIMARY KEY (NRO_RECLAMO)
 );
-
-CREATE TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento (
-	CODIGO INT NOT NULL,
-	ID_USUARIO INT NOT NULL, -- FK
-	TIPO_CUPON NVARCHAR(255),
-	ANIO_ALTA INT NOT NULL,
-	MES_ALTA NVARCHAR(50) NOT NULL,
-	DIA_ALTA NVARCHAR(255) NOT NULL,
-	RANGO_HORARIO_ALTA NVARCHAR(255),
-	ANIO_VENCIMIENTO INT NOT NULL,
-	MES_VENCIMIENTO NVARCHAR(50) NOT NULL,
-	DIA_VENCIMIENTO NVARCHAR(255) NOT NULL,
-	RANGO_HORARIO_VENCIMIENTO NVARCHAR(255),
-	MONTO FLOAT,
-	PRIMARY KEY (CODIGO)
-);
-
-/* --------------------------------------------- Tablas de hechos --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
 	NRO_PEDIDO INT NOT NULL,
@@ -688,7 +690,7 @@ AS
 BEGIN
     PRINT 'Se comienzan a migrar los cupones de descuento...';
     INSERT INTO MargeCreoQueOdioGDD.BI_Cupon_Descuento(CODIGO, ID_USUARIO, TIPO_CUPON, ANIO_ALTA, MES_ALTA, DIA_ALTA, RANGO_HORARIO_ALTA, 
-													   ANIO_VENCIMIENTO, MES_VENCIMIENTO, DIA_VENCIMIENTO, RANGO_HORARIO_VENCIMIENTO, MONTO)
+													   ANIO_VENCIMIENTO, MES_VENCIMIENTO, DIA_VENCIMIENTO, RANGO_HORARIO_VENCIMIENTO, RECLAMO, MONTO)
     SELECT cupon_descuento.CODIGO,
 		   cupon_descuento.ID_USUARIO,
 		   tipo_cupon.TIPO_CUPON,
@@ -700,13 +702,16 @@ BEGIN
 		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(cupon_descuento.FECHA_VENCIMIENTO)) AS MES_VENCIMIENTO,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, cupon_descuento.FECHA_VENCIMIENTO)) AS DIA_VENCIMIENTO,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(cupon_descuento.FECHA_VENCIMIENTO)) AS RANGO_HORARIO_VENCIMIENTO,
+		   CASE WHEN descuentoxreclamo.ID_CUPON IS NOT NULL THEN 'Si' ELSE NULL END AS RECLAMO,
 		   cupon_descuento.MONTO
     FROM MargeCreoQueOdioGDD.cupon_descuento
 	INNER JOIN MargeCreoQueOdioGDD.tipo_cupon ON cupon_descuento.ID_TIPO_CUPON = tipo_cupon.ID_TIPO
+	LEFT JOIN MargeCreoQueOdioGDD.descuentoxreclamo ON cupon_descuento.CODIGO = descuentoxreclamo.ID_CUPON;
 END
 GO
 
 /* --------------------------------------------- Creacion de vistas --------------------------------------------- */
+
 
 -- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
@@ -865,6 +870,20 @@ GROUP BY
     o.RANGO_ETARIO;
 GO
 
+-- Monto mensual generado en cupones a partir de reclamos.
+CREATE VIEW MargeCreoQueOdioGDD.V_MontoMensualGenerado AS
+SELECT
+    ANIO_ALTA,
+    MES_ALTA,
+    SUM(cd.MONTO) AS MontoGenerado
+FROM
+    MargeCreoQueOdioGDD.BI_Cupon_Descuento cd
+WHERE
+    RECLAMO = 'Si'
+GROUP BY
+    ANIO_ALTA,
+    MES_ALTA;
+GO
 /* --------------------------------------------- Ejecución de la migración --------------------------------------------- */
 
 EXEC MargeCreoQueOdioGDD.migrar_BI_provincia;
@@ -891,3 +910,4 @@ SELECT * FROM MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
 SELECT * FROM MargeCreoQueOdioGDD.V_TiempoPromedioResolucion;
+SELECT * FROM MargeCreoQueOdioGDD.V_MontoMensualGenerado;
