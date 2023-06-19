@@ -874,9 +874,61 @@ GO
 -- Porcentaje de pedidos y mensajería entregados mensualmente según el rango etario de los repartidores y la localidad. Este indicador se debe tener en cuenta 
 -- y sumar tanto los envíos de pedidos como los de mensajería. El porcentaje se calcula en función del total general de pedidos y envíos mensuales entregados.
 CREATE VIEW MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales AS
-SELECT *
+WITH TotalEntregados AS (
+    SELECT
+        ANIO_ENTREGA,
+		MES_ENTREGA,
+        RANGO_ETARIO,
+        ID_LOCALIDAD,
+        COUNT(*) AS TOTAL_ENTREGADOS
+    FROM
+        (SELECT
+                ANIO_ENTREGA,
+				MES_ENTREGA,
+                r.RANGO_ETARIO,
+                l.ID_LOCALIDAD
+            FROM
+                MargeCreoQueOdioGDD.BI_Pedido p
+                INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p.ID_ENVIO = e.NRO_ENVIO
+				INNER JOIN MargeCreoQueOdioGDD.BI_Repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
+                INNER JOIN MargeCreoQueOdioGDD.BI_Localidad l ON e.ID_LOCALIDAD_DESTINO = l.ID_LOCALIDAD
+            WHERE
+                ESTADO LIKE '%Entregado%'
+            UNION ALL
+            SELECT
+                ANIO_ENTREGA,
+				MES_ENTREGA,
+                r.RANGO_ETARIO,
+                l.ID_LOCALIDAD
+            FROM
+                MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
+                INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON em.ID_ENVIO = e.NRO_ENVIO
+				INNER JOIN MargeCreoQueOdioGDD.BI_Repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
+                INNER JOIN MargeCreoQueOdioGDD.BI_Localidad l ON e.ID_LOCALIDAD_DESTINO = l.ID_LOCALIDAD
+            WHERE
+                em.ESTADO LIKE '%Entregado%') AS T
+    GROUP BY
+        ANIO_ENTREGA,
+        MES_ENTREGA,
+        RANGO_ETARIO,
+        ID_LOCALIDAD),
+PorcentajeEntregas AS (
+    SELECT
+        ANIO_ENTREGA,
+        MES_ENTREGA,
+        RANGO_ETARIO,
+        ID_LOCALIDAD,
+        (TOTAL_ENTREGADOS * 100.0) / SUM(TOTAL_ENTREGADOS) OVER (PARTITION BY ANIO_ENTREGA, MES_ENTREGA) AS PORCENTAJE_ENTREGAS
+    FROM
+        TotalEntregados)
+SELECT
+    ANIO_ENTREGA,
+    MES_ENTREGA,
+    RANGO_ETARIO,
+    ID_LOCALIDAD,
+    PORCENTAJE_ENTREGAS
 FROM
-    MargeCreoQueOdioGDD.BI_Pedido
+    PorcentajeEntregas;
 GO
 
 -- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
@@ -926,9 +978,9 @@ CREATE VIEW MargeCreoQueOdioGDD.V_MontoMensualGenerado AS
 SELECT
     ANIO_ALTA,
     MES_ALTA,
-    SUM(cd.MONTO) AS MontoGenerado
+    SUM(MONTO) AS MontoGenerado
 FROM
-    MargeCreoQueOdioGDD.BI_Cupon_Descuento cd
+    MargeCreoQueOdioGDD.BI_Cupon_Descuento
 WHERE
     RECLAMO = 'Si'
 GROUP BY
