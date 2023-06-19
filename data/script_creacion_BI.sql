@@ -67,6 +67,9 @@ DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
 GO
 
 /* --------------------------------------------- Limpiar vistas --------------------------------------------- */
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_MayorCantidadPedidos')
+    DROP VIEW MargeCreoQueOdioGDD.V_MayorCantidadPedidos;
+GO
 
 IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_MontoTotalXPedidosCancelados')
     DROP VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
@@ -94,6 +97,10 @@ GO
 
 IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_TiempoPromedioResolucion')
     DROP VIEW MargeCreoQueOdioGDD.V_TiempoPromedioResolucion;
+GO
+
+IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_PorcentajeEntregasMensuales')
+    DROP VIEW MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales;
 GO
 
 IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_PromedioCalificacionMensual')
@@ -305,7 +312,7 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Tipo_Paquete (
 );
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Envio (
-	NRO_ENVIO INT IDENTITY(1,1),
+	NRO_ENVIO INT NOT NULL,
 	ID_LOCALIDAD_DESTINO INT NOT NULL, -- FK
 	ID_REPARTIDOR INT NOT NULL, -- FK
 	PRECIO_ENVIO FLOAT,
@@ -578,8 +585,9 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envios
 AS
 BEGIN
     PRINT 'Se comienzan a migrar los envios...';
-    INSERT INTO MargeCreoQueOdioGDD.BI_Envio(ID_LOCALIDAD_DESTINO, ID_REPARTIDOR, PRECIO_ENVIO, TIEMPO_ESTIMADO_ENTREGA)
-    SELECT localidad.ID_LOCALIDAD,
+    INSERT INTO MargeCreoQueOdioGDD.BI_Envio(NRO_ENVIO, ID_LOCALIDAD_DESTINO, ID_REPARTIDOR, PRECIO_ENVIO, TIEMPO_ESTIMADO_ENTREGA)
+    SELECT envio.NRO_ENVIO,
+	       localidad.ID_LOCALIDAD,
 		   envio.ID_REPARTIDOR,
 		   envio.PRECIO_ENVIO,
 		   envio.TIEMPO_ESTIMADO_ENTREGA
@@ -711,7 +719,42 @@ END
 GO
 
 /* --------------------------------------------- Creacion de vistas --------------------------------------------- */
-
+-- Día de la semana y franja horaria con mayor cantidad de pedidos según la localidad y categoría del local, para cada mes de cada año.
+CREATE VIEW MargeCreoQueOdioGDD.V_MayorCantidadPedidos AS
+WITH CTE AS (
+    SELECT
+        ANIO_PEDIDO,
+        MES_PEDIDO,
+        l.ID_LOCALIDAD,
+        c.ID_CATEGORIA_LOCAL,
+        DIA_PEDIDO,
+        RANGO_HORARIO_PEDIDO,
+        COUNT(*) AS CANTIDAD_PEDIDOS,
+        ROW_NUMBER() OVER (PARTITION BY ANIO_PEDIDO, MES_PEDIDO, l.ID_LOCALIDAD, c.ID_CATEGORIA_LOCAL ORDER BY COUNT(*) DESC) AS RN
+    FROM
+        MargeCreoQueOdioGDD.BI_Pedido p
+        INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
+        INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON l.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
+    GROUP BY
+        ANIO_PEDIDO,
+        MES_PEDIDO,
+        l.ID_LOCALIDAD,
+        c.ID_CATEGORIA_LOCAL,
+        DIA_PEDIDO,
+        RANGO_HORARIO_PEDIDO)
+SELECT
+    ANIO_PEDIDO,
+    MES_PEDIDO,
+    ID_LOCALIDAD,
+    ID_CATEGORIA_LOCAL,
+    DIA_PEDIDO,
+    RANGO_HORARIO_PEDIDO,
+    CANTIDAD_PEDIDOS
+FROM
+    CTE
+WHERE
+    RN = 1;
+GO
 
 -- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
@@ -736,16 +779,16 @@ GO
 -- Valor promedio mensual que tienen los envíos de pedidos en cada localidad.
 CREATE VIEW MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad AS
 SELECT
-    p.MES_ENTREGA,
+    MES_ENTREGA,
     e.ID_LOCALIDAD_DESTINO,
     AVG(e.PRECIO_ENVIO) AS PROMEDIO_MENSUAL
 FROM
     MargeCreoQueOdioGDD.BI_Pedido p
 	INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p.ID_ENVIO = e.NRO_ENVIO
 WHERE 
-	p.ESTADO NOT LIKE '%Cancelado%'
+	ESTADO NOT LIKE '%Cancelado%'
 GROUP BY
-    p.MES_ENTREGA, 
+    MES_ENTREGA, 
 	e.ID_LOCALIDAD_DESTINO;
 GO
 
@@ -787,14 +830,14 @@ GO
 -- Monto total de los cupones utilizados por mes en función del rango etario de los usuarios.
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes AS
 SELECT
-	p.MES_PEDIDO AS MES,
+	MES_PEDIDO AS MES,
 	u.RANGO_ETARIO,
 	SUM(p.TOTAL_CUPONES) AS MONTO_TOTAL_USADO
 FROM
 	MargeCreoQueOdioGDD.BI_Pedido p
 	INNER JOIN MargeCreoQueOdioGDD.BI_Usuario u ON p.ID_USUARIO = u.ID_USUARIO
 GROUP BY
-	p.MES_PEDIDO,
+	MES_PEDIDO,
 	u.RANGO_ETARIO;
 GO
 
@@ -826,6 +869,14 @@ GROUP BY
     ID_LOCAL,
     ANIO_ENTREGA,
     MES_ENTREGA;
+GO
+
+-- Porcentaje de pedidos y mensajería entregados mensualmente según el rango etario de los repartidores y la localidad. Este indicador se debe tener en cuenta 
+-- y sumar tanto los envíos de pedidos como los de mensajería. El porcentaje se calcula en función del total general de pedidos y envíos mensuales entregados.
+CREATE VIEW MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales AS
+SELECT *
+FROM
+    MargeCreoQueOdioGDD.BI_Pedido
 GO
 
 -- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
@@ -902,10 +953,12 @@ EXEC MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
 
 /* --------------------------------------------- Ejecución de las vistas --------------------------------------------- */
 
+SELECT * FROM MargeCreoQueOdioGDD.V_MayorCantidadPedidos;
 SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
 SELECT * FROM MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad;
 SELECT * FROM MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega;
 SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes; --ORDER BY MES, RANGO_ETARIO;
+--SELECT * FROM MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales; 
 SELECT * FROM MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
