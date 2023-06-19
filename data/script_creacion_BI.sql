@@ -1010,7 +1010,7 @@ SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
 SELECT * FROM MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad;
 SELECT * FROM MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega;
 SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes; --ORDER BY MES, RANGO_ETARIO;
---SELECT * FROM MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales; 
+SELECT * FROM MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales; 
 SELECT * FROM MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_CantidadReclamosMensuales;
