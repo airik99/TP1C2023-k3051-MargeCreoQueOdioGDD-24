@@ -169,13 +169,6 @@ GO
 
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
 
-/*CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS
-BEGIN DECLARE @diferencia_minutos FLOAT;
-  SET @diferencia_minutos = DATEDIFF(MINUTE, @fecha_inicio, @fecha_fin);
-  RETURN @diferencia_minutos;
-END;
-GO*/
-
 CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS
 BEGIN DECLARE @diferencia_minutos FLOAT;
   SET @diferencia_minutos = 

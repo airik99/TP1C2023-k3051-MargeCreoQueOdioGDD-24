@@ -524,11 +524,6 @@ PRIMARY KEY (ID_OPERADOR)
 
 /*********************** Agregamos las FKs ***********************/
 
--------------------------- USUARIO --------------------------
---ALTER TABLE MargeCreoQueOdioGDD.usuario
---ADD CONSTRAINT FK_DIRECCION_USUARIO
---FOREIGN KEY (ID_DIRECCION) REFERENCES MargeCreoQueOdioGDD.direccion
-
 -------------------------- LOCAL --------------------------
 ALTER TABLE MargeCreoQueOdioGDD.local
 ADD CONSTRAINT FK_DIRECCION_LOCAL
