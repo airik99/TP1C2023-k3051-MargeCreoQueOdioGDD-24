@@ -844,15 +844,14 @@ GO
 -- Promedio mensual del valor asegurado (valor declarado por el usuario) de los paquetes enviados a través del servicio de mensajería en función del tipo de paquete
 CREATE VIEW MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual AS
 SELECT
-    p.MES_ENTREGA,
+    MES_ENTREGA,
     tp.TIPO_PAQUETE,
     AVG(tp.VALOR_ASEGURADO) AS ValorAseguradoPromedio
 FROM
     MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
     INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Paquete tp ON em.ID_TIPO_PAQUETE = tp.ID_TIPO_PAQUETE
-    INNER JOIN MargeCreoQueOdioGDD.BI_Pedido p ON em.ID_ENVIO = p.ID_ENVIO
 GROUP BY
-    p.MES_ENTREGA,
+    MES_ENTREGA,
     tp.TIPO_PAQUETE;
 GO
 
