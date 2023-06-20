@@ -31,55 +31,42 @@ DROP FUNCTION MargeCreoQueOdioGDD.restar
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
 DROP TABLE MargeCreoQueOdioGDD.BI_Reclamo;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Pedido')
 DROP TABLE MargeCreoQueOdioGDD.BI_Pedido;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Cupon_Descuento')
 DROP TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Envio_Mensajeria')
 DROP TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Envio')
 DROP TABLE MargeCreoQueOdioGDD.BI_Envio;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Local')
 DROP TABLE MargeCreoQueOdioGDD.BI_Local;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Localidad')
 DROP TABLE MargeCreoQueOdioGDD.BI_Localidad;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Operador')
 DROP TABLE MargeCreoQueOdioGDD.BI_Operador;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Usuario')
 DROP TABLE MargeCreoQueOdioGDD.BI_Usuario;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Repartidor')
 DROP TABLE MargeCreoQueOdioGDD.BI_Repartidor;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Categoria_Local')
 DROP TABLE MargeCreoQueOdioGDD.BI_Categoria_Local;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Paquete')
 DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Paquete;
-GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Provincia')
 DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
-GO
 
 /* --------------------------------------------- Limpiar vistas --------------------------------------------- */
 IF EXISTS (SELECT [name] FROM sys.views WHERE [name] = 'V_MayorCantidadPedidos')
