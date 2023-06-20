@@ -24,43 +24,58 @@ DROP FUNCTION MargeCreoQueOdioGDD.diaSemana
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'mesDelAnio')
 DROP FUNCTION MargeCreoQueOdioGDD.mesDelAnio
 
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'restar')
+DROP FUNCTION MargeCreoQueOdioGDD.restar
+
 /* --------------------------------------------- Limpiar tablas --------------------------------------------- */
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Reclamo')
 DROP TABLE MargeCreoQueOdioGDD.BI_Reclamo;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Pedido')
 DROP TABLE MargeCreoQueOdioGDD.BI_Pedido;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Cupon_Descuento')
 DROP TABLE MargeCreoQueOdioGDD.BI_Cupon_Descuento;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Envio_Mensajeria')
 DROP TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Envio')
 DROP TABLE MargeCreoQueOdioGDD.BI_Envio;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Local')
 DROP TABLE MargeCreoQueOdioGDD.BI_Local;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Localidad')
 DROP TABLE MargeCreoQueOdioGDD.BI_Localidad;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Operador')
 DROP TABLE MargeCreoQueOdioGDD.BI_Operador;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Usuario')
 DROP TABLE MargeCreoQueOdioGDD.BI_Usuario;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Repartidor')
 DROP TABLE MargeCreoQueOdioGDD.BI_Repartidor;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Categoria_Local')
 DROP TABLE MargeCreoQueOdioGDD.BI_Categoria_Local;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Tipo_Paquete')
 DROP TABLE MargeCreoQueOdioGDD.BI_Tipo_Paquete;
+GO
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Provincia')
 DROP TABLE MargeCreoQueOdioGDD.BI_Provincia;
@@ -167,9 +182,21 @@ GO
 
 /* --------------------------------------------- Creacion de funciones --------------------------------------------- */
 
-CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS
+/*CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS
 BEGIN DECLARE @diferencia_minutos FLOAT;
   SET @diferencia_minutos = DATEDIFF(MINUTE, @fecha_inicio, @fecha_fin);
+  RETURN @diferencia_minutos;
+END;
+GO*/
+
+CREATE FUNCTION MargeCreoQueOdioGDD.calcularDiferenciaMinutos(@fecha_inicio DATETIME, @fecha_fin DATETIME) RETURNS FLOAT AS
+BEGIN DECLARE @diferencia_minutos FLOAT;
+  SET @diferencia_minutos = 
+	CASE 
+		WHEN @fecha_inicio < @fecha_fin THEN DATEDIFF(MINUTE, @fecha_inicio, @fecha_fin)
+		WHEN @fecha_inicio > @fecha_fin THEN DATEDIFF(MINUTE, @fecha_fin, @fecha_inicio)
+		WHEN @fecha_inicio = @fecha_fin THEN DATEDIFF(MINUTE, @fecha_fin, @fecha_inicio)
+	END;
   RETURN @diferencia_minutos;
 END;
 GO
@@ -250,6 +277,17 @@ BEGIN DECLARE @NombreMes NVARCHAR(50);
 			WHEN '12' THEN 'Diciembre'
 		END;
     RETURN @NombreMes;
+END;
+GO
+
+CREATE FUNCTION MargeCreoQueOdioGDD.restar (@Valor1 FLOAT, @Valor2 FLOAT) RETURNS FLOAT AS
+BEGIN DECLARE @Resultado FLOAT;
+    SET @Resultado = 
+    	CASE
+			WHEN @Valor1 > @Valor2 THEN @Valor1 - @Valor2
+			WHEN @Valor1 < @Valor2 THEN @Valor2 - @Valor1
+		END;
+    RETURN @Resultado;
 END;
 GO
 
@@ -653,7 +691,7 @@ BEGIN
 		   MargeCreoQueOdioGDD.MesDelAnio(MONTH(envio_mensajeria.FECHA_HORA_ENTREGA)) AS MES_ENTREGA,
 		   MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, envio_mensajeria.FECHA_HORA_ENTREGA)) AS DIA_ENTREGA,
 		   MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(envio_mensajeria.FECHA_HORA_ENTREGA)) AS RANGO_HORARIO_ENTREGA,
-		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_PEDIDO, FECHA_HORA_ENTREGA) AS TIEMPO_TOTAL_ENTREGA, 
+		   MargeCreoQueOdioGDD.calcularDiferenciaMinutos(envio_mensajeria.FECHA_HORA_PEDIDO, envio_mensajeria.FECHA_HORA_ENTREGA) AS TIEMPO_TOTAL_ENTREGA, 
 		   estado_mensajeria.NOMBRE,
 		   envio_mensajeria.TOTAL_SERVICIO_MENSAJERIA
     FROM MargeCreoQueOdioGDD.envio_mensajeria
@@ -796,35 +834,52 @@ GO
 -- y representa la diferencia entre la fecha/hora en que se realizó el pedido y la fecha/hora que se entregó en comparación con los minutos de 
 -- tiempo estimados. Este indicador debe tener en cuenta todos los envíos, es decir, sumar tanto los envíos de pedidos como los de mensajería.
 CREATE VIEW MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega AS
-SELECT
-	r.TIPO_MOVILIDAD,
-	p.DIA_PEDIDO AS DIA_SEMANA,
-	p.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA
-	--(CASE WHEN p.TIEMPO_TOTAL_ENTREGA > e.TIEMPO_ESTIMADO_ENTREGA THEN AVG(p.TIEMPO_TOTAL_ENTREGA - e.TIEMPO_ESTIMADO_ENTREGA)
-	--WHEN p.TIEMPO_TOTAL_ENTREGA < e.TIEMPO_ESTIMADO_ENTREGA THEN AVG(e.TIEMPO_ESTIMADO_ENTREGA - p.TIEMPO_TOTAL_ENTREGA)) AS DESVIO_PROMEDIO
-FROM
-	MargeCreoQueOdioGDD.BI_Pedido p
-	INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p.ID_ENVIO = e.NRO_ENVIO
-	INNER JOIN MargeCreoQueOdioGDD.BI_Repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
-GROUP BY 
-	r.TIPO_MOVILIDAD, 
-	p.DIA_PEDIDO, 
-	p.RANGO_HORARIO_PEDIDO
-UNION
 SELECT 
-	r.TIPO_MOVILIDAD,
-	em.DIA_PEDIDO AS DIA_SEMANA,
-	em.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA
-	--(CASE WHEN (em.TIEMPO_TOTAL_ENTREGA > e.TIEMPO_ESTIMADO_ENTREGA) THEN AVG(em.TIEMPO_TOTAL_ENTREGA - e.TIEMPO_ESTIMADO_ENTREGA)
-	--WHEN (em.TIEMPO_TOTAL_ENTREGA < e.TIEMPO_ESTIMADO_ENTREGA) THEN AVG(e.TIEMPO_ESTIMADO_ENTREGA - em.TIEMPO_TOTAL_ENTREGA)) AS DESVIO_PROMEDIO
-FROM 
-	MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
-	INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON em.ID_ENVIO = e.NRO_ENVIO
-	INNER JOIN MargeCreoQueOdioGDD.BI_Repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
-GROUP BY 
-	r.TIPO_MOVILIDAD, 
-	em.DIA_PEDIDO, 
-	em.RANGO_HORARIO_PEDIDO;
+	pem.TIPO_MOVILIDAD,
+	pem.DIA_SEMANA,
+	pem.FRANJA_HORARIA,
+	--SUM(ABS(pem.TIEMPO_ESTIMADO_DE_ENTREGA - pem.TIEMPO_TOTAL_DE_ENTREGA)) / COUNT(*)  AS TIEMPO_DESVIO_PROMEDIO,
+	AVG(MargeCreoQueOdioGDD.restar(pem.TIEMPO_ESTIMADO_DE_ENTREGA, pem.TIEMPO_TOTAL_DE_ENTREGA)) AS DESVIO_PROMEDIO
+FROM
+	(
+	SELECT
+		r.TIPO_MOVILIDAD AS TIPO_MOVILIDAD,
+		p.DIA_PEDIDO AS DIA_SEMANA,
+		p.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA,
+		p.TIEMPO_TOTAL_ENTREGA AS TIEMPO_TOTAL_DE_ENTREGA,
+		e.TIEMPO_ESTIMADO_ENTREGA AS TIEMPO_ESTIMADO_DE_ENTREGA
+	FROM
+		MargeCreoQueOdioGDD.BI_Pedido p
+		INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p.ID_ENVIO = e.NRO_ENVIO
+		INNER JOIN MargeCreoQueOdioGDD.BI_Repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
+	GROUP BY 
+		r.TIPO_MOVILIDAD, 
+		p.DIA_PEDIDO, 
+		p.RANGO_HORARIO_PEDIDO,
+		p.TIEMPO_TOTAL_ENTREGA,
+		e.TIEMPO_ESTIMADO_ENTREGA
+	UNION ALL
+	SELECT 
+		r.TIPO_MOVILIDAD AS TIPO_MOVILIDAD,
+		em.DIA_PEDIDO AS DIA_SEMANA,
+		em.RANGO_HORARIO_PEDIDO AS FRANJA_HORARIA,
+		em.TIEMPO_TOTAL_ENTREGA AS TIEMPO_TOTAL_DE_ENTREGA,
+		e.TIEMPO_ESTIMADO_ENTREGA AS TIEMPO_ESTIMADO_DE_ENTREGA
+	FROM 
+		MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
+		INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON em.ID_ENVIO = e.NRO_ENVIO
+		INNER JOIN MargeCreoQueOdioGDD.BI_Repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
+	GROUP BY 
+		r.TIPO_MOVILIDAD, 
+		em.DIA_PEDIDO, 
+		em.RANGO_HORARIO_PEDIDO,
+		em.TIEMPO_TOTAL_ENTREGA,
+		e.TIEMPO_ESTIMADO_ENTREGA
+	) AS pem
+GROUP BY
+	pem.TIPO_MOVILIDAD,
+	pem.DIA_SEMANA,
+	pem.FRANJA_HORARIA
 GO
 
 -- Monto total de los cupones utilizados por mes en función del rango etario de los usuarios.
@@ -987,6 +1042,7 @@ GROUP BY
     ANIO_ALTA,
     MES_ALTA;
 GO
+
 /* --------------------------------------------- Ejecución de la migración --------------------------------------------- */
 
 EXEC MargeCreoQueOdioGDD.migrar_BI_provincia;
@@ -1009,7 +1065,7 @@ SELECT * FROM MargeCreoQueOdioGDD.V_MayorCantidadPedidos;
 SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
 SELECT * FROM MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad;
 SELECT * FROM MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega;
-SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes; --ORDER BY MES, RANGO_ETARIO;
+SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes;
 SELECT * FROM MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales; 
 SELECT * FROM MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual;
 SELECT * FROM MargeCreoQueOdioGDD.V_PromedioCalificacionMensual;
