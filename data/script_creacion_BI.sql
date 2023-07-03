@@ -448,26 +448,26 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Rango_Horario (
 /* --------------------------------------------- Tablas de hechos --------------------------------------------- */
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Reclamo (
-	NRO_RECLAMO INT IDENTITY(1,1),
 	ID_RANGO_ETARIO_OPERADORES INT NOT NULL, -- FK
 	ID_ESTADO INT NOT NULL, -- FK
 	TIPO_RECLAMO NVARCHAR(255),
 	ID_TIEMPO_INICIO INT NOT NULL, -- FK
 	ID_DIA_INICIO INT NOT NULL, -- FK
-	ID_PEDIDO INT NOT NULL, --FK -- POR AHI PODEMOS CAMBIARLO POR LOCAL
 	ID_RANGO_HORARIO_INICIO INT NOT NULL, -- FK
+	--ID_PEDIDO INT NOT NULL, -- TODO: POR AHI PODEMOS CAMBIARLO POR LOCAL
+	ID_LOCAL INT NOT NULL, --FK
 	ID_TIEMPO_SOLUCION INT NOT NULL, -- FK
 	ID_DIA_SOLUCION INT NOT NULL, -- FK
 	ID_RANGO_HORARIO_SOLUCION INT NOT NULL, -- FK
-	TIEMPO_TOTAL_RESOLUCION FLOAT NOT NULL, -- Tiempo que tardo en resolverse el reclamo (metrica)
-	PRIMARY KEY (NRO_RECLAMO)
+	TIEMPO_TOTAL_RESOLUCION FLOAT NOT NULL, -- Tiempo que tardo en resolverse el reclamo segun tipo de reclamo y rango etario operadores
+	MONTO_CUPONES_GENERADOS FLOAT NOT NULL, -- Este es el monto total generado en cupones segun mes
+	CANTIDAD_RECLAMOS INT NOT NULL, --Esta es la cantidad de reclamos x local, dia y horario
 );
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
-	NRO_PEDIDO INT IDENTITY(1,1),
 	ID_TIEMPO_PEDIDO INT NOT NULL, -- FK
-	ID_RANGO_HORARIO_PEDIDO INT NOT NULL, -- FK
 	ID_DIA_PEDIDO INT NOT NULL, -- FK
+	ID_RANGO_HORARIO_PEDIDO INT NOT NULL, -- FK
 	ID_TIEMPO_ENTREGA INT NOT NULL, -- FK
 	ID_DIA_ENTREGA INT NOT NULL, -- FK
 	ID_RANGO_HORARIO_ENTREGA INT NOT NULL, -- FK
@@ -477,17 +477,18 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
 	ID_ESTADO INT NOT NULL, -- FK
 	ID_RANGO_ETARIO_USUARIOS INT NOT NULL, -- FK
 	TIEMPO_TOTAL_ENTREGA FLOAT NOT NULL, -- Esta es la diferencia entre la fecha en que se realizó el pedido y la fecha en que se entregó
+	DESVIO_PROMEDIO_ENTREGA FLOAT NOT NULL, -- Este es el desvio promedio de entrega segun tipo de movilidad, dia y rango horario
+	CANTIDAD_PEDIDOS INT NOT NULL, -- Esta es la cantidad de pedidos hechos segun dia, rango horario, localidad, categoria local, mes y año
+	CANT_PEDIDOS_ENTREGADOS INT NOT NULL, -- Esta es la cantidad de pedidos entregados segun mes, rango etario repartidores y localidad
 	TARIFA_SERVICIO FLOAT NOT NULL,
 	TOTAL_PRODUCTOS FLOAT NOT NULL,
-	TOTAL_CUPONES FLOAT NOT NULL,
+	TOTAL_CUPONES FLOAT NOT NULL, -- Monto de cupones usados
 	TOTAL_SERVICIO FLOAT NOT NULL,
 	TOTAL_PEDIDO FLOAT NOT NULL,
-	CALIFICACION DECIMAL(5,1),
-	PRIMARY KEY (NRO_PEDIDO)
+	CALIFICACION DECIMAL(5,1)
 );
 
 CREATE TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria (
-	NRO_ENVIO_MENSAJERIA INT IDENTITY(1,1),
 	ID_LOCALIDAD_ORIGEN INT NOT NULL, -- FK
 	ID_TIPO_PAQUETE INT NOT NULL, -- FK
 	ID_ENVIO INT NOT NULL, -- FK
@@ -500,8 +501,10 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria (
 	ID_DIA_ENTREGA INT NOT NULL, -- FK
 	ID_ESTADO INT NOT NULL, -- FK
 	TIEMPO_TOTAL_ENTREGA FLOAT NOT NULL, -- Esta es la diferencia entre la fecha en que se realizó el pedido y la fecha en que se entregó
-	TOTAL_SERVICIO_MENSAJERIA FLOAT NOT NULL,
-	PRIMARY KEY (NRO_ENVIO_MENSAJERIA)
+	DESVIO_PROMEDIO_ENTREGA FLOAT NOT NULL, -- Este es el desvio promedio de entrega segun tipo de movilidad, dia y rango horario
+	CANT_SERVICIOS_ENTREGADOS INT NOT NULL, -- Esta es la cantidad de servicios de mensajeria entregados segun mes, rango etario repartidores y localidad
+	PROMEDIO_VALOR_ASEGURADO FLOAT NOT NULL, -- Este es el promedio del valor asegurado segun tipo de paquete
+	TOTAL_SERVICIO_MENSAJERIA FLOAT NOT NULL
 );
 
 /* --------------------------------------------- Alter tables --------------------------------------------- */
@@ -553,10 +556,14 @@ FOREIGN KEY (ID_TIEMPO_INICIO) REFERENCES MargeCreoQueOdioGDD.BI_Tiempo
 ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
 ADD CONSTRAINT FK_BI_DIA_INICIO_RECLAMO_ID
 FOREIGN KEY (ID_DIA_INICIO) REFERENCES MargeCreoQueOdioGDD.BI_Dia
-
+/*
 ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
 ADD CONSTRAINT FK_BI_PEDIDO_RECLAMO_ID
 FOREIGN KEY (ID_PEDIDO) REFERENCES MargeCreoQueOdioGDD.BI_Pedido
+*/
+ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
+ADD CONSTRAINT FK_BI_LOCAL_RECLAMO_ID
+FOREIGN KEY (ID_LOCAL) REFERENCES MargeCreoQueOdioGDD.BI_Local
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
 ADD CONSTRAINT FK_BI_RANGO_HORARIO_INICIO_RECLAMO_ID
@@ -922,7 +929,7 @@ END
 GO
 
 -- Pedido
-
+/*
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_pedidos   ------------- REVISAR NO FUNCIONA
 AS
 BEGIN
@@ -963,6 +970,7 @@ BEGIN
     INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario r ON MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(FECHA_HORA_ENTREGA)) = r.RANGO_HORARIO
 END
 GO
+*/
 
 /* --------------------------------------------- Creacion de vistas --------------------------------------------- */
 -- Día de la semana y franja horaria con mayor cantidad de pedidos según la localidad y categoría del local, para cada mes de cada año.
@@ -1096,22 +1104,22 @@ CREATE VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales AS
 SELECT
     t.ANIO,
     t.MES,
-    p.ID_LOCAL,
+    r.ID_LOCAL,
     l.NOMBRE,
     d.DIA,
     h.RANGO_HORARIO,
     COUNT(*) AS CantidadReclamos
 FROM
     MargeCreoQueOdioGDD.BI_Reclamo r
-    INNER JOIN MargeCreoQueOdioGDD.BI_Pedido p ON r.ID_PEDIDO = p.NRO_PEDIDO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
+    --INNER JOIN MargeCreoQueOdioGDD.BI_Pedido p ON r.ID_PEDIDO = p.NRO_PEDIDO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON r.ID_LOCAL = l.ID_LOCAL
 	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON r.ID_TIEMPO_INICIO = t.ID_TIEMPO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON r.ID_DIA_INICIO = d.ID_DIA
 	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON r.ID_RANGO_HORARIO_INICIO = h.ID_HORARIO
 GROUP BY
     t.ANIO,
     t.MES,
-    p.ID_LOCAL,
+    r.ID_LOCAL,
     l.NOMBRE,
     d.DIA,
     h.RANGO_HORARIO
