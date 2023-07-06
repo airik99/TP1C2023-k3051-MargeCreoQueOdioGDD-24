@@ -315,7 +315,7 @@ CREATE FUNCTION MargeCreoQueOdioGDD.restar (@Valor1 FLOAT, @Valor2 FLOAT) RETURN
 BEGIN DECLARE @Resultado FLOAT;
     SET @Resultado = 
     	CASE
-			WHEN @Valor1 > @Valor2 THEN @Valor1 - @Valor2
+			WHEN @Valor1 >= @Valor2 THEN @Valor1 - @Valor2
 			WHEN @Valor1 < @Valor2 THEN @Valor2 - @Valor1
 		END;
     RETURN @Resultado;
@@ -930,7 +930,7 @@ END
 GO
 
 -- Pedido
-
+/*
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_pedidos
 AS
 BEGIN
@@ -971,7 +971,59 @@ BEGIN
     INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario re ON MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(u.FECHA_NACIMIENTO)) = re.RANGO_ETARIO
 END
 GO
-
+*/
+/*
+CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_pedidos
+AS
+BEGIN
+    PRINT 'Se comienzan a migrar los pedidos...';
+    INSERT INTO MargeCreoQueOdioGDD.BI_Pedido(ID_TIEMPO, ID_DIA, ID_RANGO_HORARIO_PEDIDO, ID_RANGO_HORARIO_ENTREGA, ID_LOCAL, ID_ENVIO, ID_ESTADO, 
+											  ID_RANGO_ETARIO_USUARIOS, DESVIO_PROMEDIO_ENTREGA, CANTIDAD_PEDIDOS, CANT_PEDIDOS_ENTREGADOS, TOTAL_PRODUCTOS, 
+											  TOTAL_CUPONES, CALIFICACION)
+	SELECT DISTINCT t.ID_TIEMPO AS ID_TIEMPO,
+		   d.ID_DIA AS ID_DIA,
+		   r1.ID_HORARIO AS ID_RANGO_HORARIO_PEDIDO,
+		   r2.ID_HORARIO AS ID_RANGO_HORARIO_ENTREGA,
+		   p.ID_LOCAL,
+		   --l.ID_CATEGORIA, no se si sumarlo
+		   l.ID_LOCALIDAD,
+		   p.ID_ESTADO,
+		   (SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.usuario u ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(u.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_USUARIOS,
+		   (SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.repartidor r ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_REPARTIDORES,
+		   --e.ID_RANGO_ETARIO_REPARTIDORES, -- En lugar de joinear repartidores ??
+		   --(SELECT tm.TIPO_MOVILIDAD FROM MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm WHERE tm.ID_TIPO = r.ID_TIPO_MOVILIDAD) AS TIPO_MOVILIDAD, -- Me obliga a agrupar campo
+		   --tm.TIPO_MOVILIDAD, -- Aumenta un poco la cant de filas
+		   AVG(MargeCreoQueOdioGDD.restar(e.TIEMPO_ESTIMADO_ENTREGA, MargeCreoQueOdioGDD.calcularDiferenciaMinutos(p.FECHA_HORA_PEDIDO, p.FECHA_HORA_ENTREGA))) AS DESVIO_PROMEDIO_ENTREGA,
+		   COUNT(p.NRO_PEDIDO) AS CANTIDAD_PEDIDOS,
+		   --(0) AS CANT_PEDIDOS_ENTREGADOS, -- Creo que conviene no tener este campo
+		   SUM(TOTAL_PRODUCTOS) AS TOTAL_PRODUCTOS, 
+		   SUM(TOTAL_CUPONES) AS TOTAL_CUPONES,
+		   SUM((e.PRECIO_ENVIO + e.PROPINA)) AS PRECIO_TOTAL_ENVIO,
+		   SUM(CALIFICACION) AS CALIFICACION
+	FROM MargeCreoQueOdioGDD.pedido p
+	INNER JOIN MargeCreoQueOdioGDD.usuario u ON p.ID_USUARIO = u.ID_USUARIO 
+	INNER JOIN MargeCreoQueOdioGDD.BI_Estado_Pedido ep ON p.ID_ESTADO = ep.ID_ESTADO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
+	INNER JOIN MargeCreoQueOdioGDD.BI_Localidad ll ON l.ID_LOCALIDAD = ll.ID_LOCALIDAD
+	INNER JOIN MargeCreoQueOdioGDD.BI_Provincia prov ON ll.ID_PROVINCIA = prov.ID_PROVINCIA
+	INNER JOIN MargeCreoQueOdioGDD.envio e ON p.ID_ENVIO = e.NRO_ENVIO
+	INNER JOIN MargeCreoQueOdioGDD.repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
+	INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm ON r.ID_TIPO_MOVILIDAD = tm.ID_TIPO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON YEAR(p.FECHA_HORA_PEDIDO) = t.ANIO AND MargeCreoQueOdioGDD.mesDelAnio(DATEPART(MONTH, p.FECHA_HORA_PEDIDO)) = t.MES
+	INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, p.FECHA_HORA_PEDIDO)) = d.DIA
+	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario r1 ON MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(p.FECHA_HORA_PEDIDO)) = r1.RANGO_HORARIO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario r2 ON MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(p.FECHA_HORA_ENTREGA)) = r2.RANGO_HORARIO
+	GROUP BY t.ID_TIEMPO, 
+			 d.ID_DIA, 
+			 r1.ID_HORARIO, 
+			 r2.ID_HORARIO, 
+			 p.ID_LOCAL, 
+			 p.ID_ESTADO,
+			 p.ID_USUARIO, 
+			 l.ID_LOCALIDAD--, tm.TIPO_MOVILIDAD, l.ID_CATEGORIA
+END
+GO
+*/
 -- Envio Mensajeria
 
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
