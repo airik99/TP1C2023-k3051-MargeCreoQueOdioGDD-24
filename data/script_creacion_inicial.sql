@@ -232,10 +232,14 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_direcciones_x
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones_x_usuarios;
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_localidades_activas')
+    DROP PROCEDURE MargeCreoQueOdioGDD.migrar_localidades_activas;
+GO
+
 /* --------------------------------------------- Limpiar funciones --------------------------------------------- */
 
-IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerLocalidadActiva')
-DROP FUNCTION MargeCreoQueOdioGDD.obtenerLocalidadActiva
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerFechaReciente')
+DROP FUNCTION MargeCreoQueOdioGDD.obtenerFechaReciente
 GO
 
 /*********************** Limpiar Schema ***********************/
@@ -721,28 +725,6 @@ GO
 
 /* --------------------------------------------- Funciones --------------------------------------------- */
 
-CREATE FUNCTION MargeCreoQueOdioGDD.obtenerLocalidadActiva(@repartidorId INT) RETURNS VARCHAR(255) AS
-BEGIN
-  DECLARE @localidadActiva VARCHAR(255);
-  
-  SELECT TOP 1 @localidadActiva = Localidad_Activa
-  FROM (
-    SELECT ENVIO_MENSAJERIA_LOCALIDAD AS Localidad_Activa, ENVIO_MENSAJERIA_FECHA_ENTREGA AS Fecha_Entrega, REPARTIDOR_DNI, REPARTIDOR_EMAIL
-    FROM gd_esquema.Maestra
-    INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.DNI = REPARTIDOR_DNI AND r.ID_REPARTIDOR = @repartidorId
-    WHERE ENVIO_MENSAJERIA_FECHA_ENTREGA IS NOT NULL
-    UNION
-    SELECT LOCAL_LOCALIDAD AS Localidad_Activa, PEDIDO_FECHA_ENTREGA AS Fecha_Entrega, REPARTIDOR_DNI, REPARTIDOR_EMAIL
-    FROM gd_esquema.Maestra
-    INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.DNI = REPARTIDOR_DNI AND r.ID_REPARTIDOR = @repartidorId
-    WHERE PEDIDO_FECHA_ENTREGA IS NOT NULL
-  ) AS Subquery
-  ORDER BY Fecha_Entrega DESC;
-
-  RETURN @localidadActiva;
-END
-GO
-
 /*********************** Creamos los stores procedures ***********************/
 
 ---------------------------- Tipo Medio Pago ----------------------------
@@ -1078,22 +1060,46 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
 GO
 
 ---------------------------- LocalidadXRepartidor ----------------------------
+CREATE FUNCTION MargeCreoQueOdioGDD.obtenerFechaReciente(@id_repartidor INT)
+RETURNS DATE
+AS
+BEGIN
+    DECLARE @maxima_fecha DATE;
+    
+    SELECT @maxima_fecha = MAX(COALESCE(PEDIDO_FECHA_ENTREGA, ENVIO_MENSAJERIA_FECHA_ENTREGA))
+    FROM gd_esquema.Maestra
+    INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.EMAIL = REPARTIDOR_EMAIL AND r.ID_REPARTIDOR = @id_repartidor
+    GROUP BY REPARTIDOR_EMAIL;
+    
+    RETURN @maxima_fecha;
+END
+GO
+
 
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades_x_repartidor
 AS
-  BEGIN
-	PRINT 'Se comienzan a migrar las localidades x repartidor...'
-    INSERT INTO localidadxrepartidor(ID_REPARTIDOR, ID_LOCALIDAD, ACTIVO)
-		SELECT ID_REPARTIDOR,
-			   lo.ID_LOCALIDAD AS ID_LOCALIDAD,
-			   ' ' AS ACTIVO
-			   --MargeCreoQueOdioGDD.obtenerLocalidadActiva(ID_REPARTIDOR) -- NO FUNCIONA TARDA MUCHO
-		FROM gd_esquema.Maestra
-		INNER JOIN MargeCreoQueOdioGDD.localidad AS lo ON (lo.NOMBRE = isnull(LOCAL_LOCALIDAD, ENVIO_MENSAJERIA_LOCALIDAD))
-		INNER JOIN MargeCreoQueOdioGDD.repartidor ON repartidor.DNI = REPARTIDOR_DNI AND repartidor.EMAIL = REPARTIDOR_EMAIL
-		WHERE REPARTIDOR_DNI IS NOT NULL
-  END
+BEGIN
+    ALTER TABLE tu_tabla
+    ADD FECHA_RECIENTE DATETIME;
+    
+    DECLARE @fecha_maxima DATE;
+    
+    PRINT 'Se comienzan a migrar las localidades x repartidor...'
+    INSERT INTO localidadxrepartidor(ID_REPARTIDOR, ID_LOCALIDAD, FECHA_RECIENTE, ACTIVO)
+        SELECT r.ID_REPARTIDOR,
+               lo.ID_LOCALIDAD AS ID_LOCALIDAD,
+               @fecha_maxima = MargeCreoQueOdioGDD.obtenerFechaReciente(r.ID_REPARTIDOR),
+               (CASE WHEN @fecha_maxima = PEDIDO_FECHA_ENTREGA OR @fecha_maxima = ENVIO_MENSAJERIA_FECHA_ENTREGA THEN '1' ELSE '0' END)
+        FROM gd_esquema.Maestra m
+        INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.DNI = m.REPARTIDOR_DNI AND r.EMAIL = m.REPARTIDOR_EMAIL
+        INNER JOIN MargeCreoQueOdioGDD.localidad AS lo ON (lo.NOMBRE = ISNULL(m.LOCAL_LOCALIDAD, m.ENVIO_MENSAJERIA_LOCALIDAD))
+        WHERE REPARTIDOR_DNI IS NOT NULL;
+END;
 GO
+
+
+
+--select * from MargeCreoQueOdioGDD.localidadxrepartidor
 ---------------------------- Operador ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
  AS

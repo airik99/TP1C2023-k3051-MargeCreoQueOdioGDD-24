@@ -478,7 +478,7 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
 	ID_RANGO_ETARIO_REPARTIDOR INT NOT NULL, -- FK
 	ID_TIPO_MOVILIDAD_REPARTIDOR INT NOT NULL, -- FK
 	DESVIO_PROMEDIO_ENTREGA FLOAT, -- Este es el desvio promedio de entrega segun tipo de movilidad, dia y rango horario
-	CANTIDAD_PEDIDOS INT, -- Esta es la cantidad de pedidos hechos segun dia, rango horario, localidad, categoria local, mes y año
+	CANTIDAD_PEDIDOS INT, -- Esta es la cantidad de pedidos hechos segun dia, rango horario, localidad, categoria local, mes y aÃ±o
 	TOTAL_PRODUCTOS FLOAT NOT NULL,
 	TOTAL_CUPONES FLOAT NOT NULL, -- Monto de cupones usados
 	PRECIO_ENVIO FLOAT NOT NULL,
@@ -1088,33 +1088,28 @@ GO
 
 /* --------------------------------------------- Creacion de vistas --------------------------------------------- */
 /*
--- Día de la semana y franja horaria con mayor cantidad de pedidos según la localidad y categoría del local, para cada mes de cada año.
+-- DÃ­a de la semana y franja horaria con mayor cantidad de pedidos segÃºn la localidad y categorÃ­a del local, para cada mes de cada aÃ±o.
 CREATE VIEW MargeCreoQueOdioGDD.V_MayorCantidadPedidos AS
 SELECT
     t.ANIO,
     t.MES,
-    l.NOMBRE,
+    l.LOCALIDAD,
     c.CATEGORIA,
-    d.DIA,
-    h.RANGO_HORARIO,
-    COUNT(*) AS CANTIDAD_PEDIDOS
-FROM
-    MargeCreoQueOdioGDD.BI_Pedido p
-    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_PEDIDO = t.ID_TIEMPO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA_PEDIDO = d.ID_DIA
-    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON p.ID_RANGO_HORARIO_PEDIDO = h.ID_HORARIO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
-    INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON l.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
-GROUP BY
-    t.ANIO,
-    t.MES,
-    l.NOMBRE,
-    c.CATEGORIA,
-    d.DIA,
-    h.RANGO_HORARIO;
+    MAX(d.DIA) 'Dia',
+    MAX(rh.RANGO_HORARIO) 'Rango Horario',
+    COUNT(*) AS CantidadPedidos
+FROM MargeCreoQueOdioGDD.BI_Pedido p
+INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
+INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
+INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
+INNER JOIN MargeCreoQueOdioGDD.BI_Localidad l ON p.ID_LOCALIDAD = l.ID_LOCALIDAD
+INNER JOIN MargeCreoQueOdioGDD.BI_Local loc ON p.ID_LOCAL = loc.ID_LOCAL
+INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON loc.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
+GROUP BY l.LOCALIDAD, c.CATEGORIA, t.ANIO, t.MES
 GO
 
--- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
+
+-- Monto total no cobrado por cada local en funciÃ³n de los pedidos cancelados segÃºn el dÃ­a de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados AS
 SELECT 
@@ -1138,7 +1133,7 @@ GROUP BY
 	p.TOTAL_PRODUCTOS;
 GO
 
--- Valor promedio mensual que tienen los envíos de pedidos en cada localidad.
+-- Valor promedio mensual que tienen los envÃ­os de pedidos en cada localidad.
 CREATE VIEW MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad AS
 SELECT
     t.MES AS MES_ENTREGA,
@@ -1156,14 +1151,14 @@ GROUP BY
     e.ID_LOCALIDAD_DESTINO;
 GO
 
--- Desvío promedio en tiempo de entrega según el tipo de movilidad, el día de la semana y la franja horaria. El desvío debe calcularse en minutos 
--- y representa la diferencia entre la fecha/hora en que se realizó el pedido y la fecha/hora que se entregó en comparación con los minutos de 
--- tiempo estimados. Este indicador debe tener en cuenta todos los envíos, es decir, sumar tanto los envíos de pedidos como los de mensajería.
+-- DesvÃ­o promedio en tiempo de entrega segÃºn el tipo de movilidad, el dÃ­a de la semana y la franja horaria. El desvÃ­o debe calcularse en minutos 
+-- y representa la diferencia entre la fecha/hora en que se realizÃ³ el pedido y la fecha/hora que se entregÃ³ en comparaciÃ³n con los minutos de 
+-- tiempo estimados. Este indicador debe tener en cuenta todos los envÃ­os, es decir, sumar tanto los envÃ­os de pedidos como los de mensajerÃ­a.
 
 -- CREATE VIEW MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega AS
 
 
--- Monto total de los cupones utilizados por mes en función del rango etario de los usuarios.
+-- Monto total de los cupones utilizados por mes en funciÃ³n del rango etario de los usuarios.
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes AS
 SELECT
     t.MES,
@@ -1178,7 +1173,7 @@ GROUP BY
     r.RANGO_ETARIO;
 GO
 
--- Promedio mensual del valor asegurado (valor declarado por el usuario) de los paquetes enviados a través del servicio de mensajería en función del tipo de paquete
+-- Promedio mensual del valor asegurado (valor declarado por el usuario) de los paquetes enviados a travÃ©s del servicio de mensajerÃ­a en funciÃ³n del tipo de paquete
 CREATE VIEW MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual AS
 SELECT
     t.MES,
@@ -1193,7 +1188,7 @@ GROUP BY
     tp.TIPO_PAQUETE;
 GO
 
--- Promedio de calificación mensual por local
+-- Promedio de calificaciÃ³n mensual por local
 CREATE VIEW MargeCreoQueOdioGDD.V_PromedioCalificacionMensual AS
 SELECT
     ID_LOCAL,
@@ -1209,12 +1204,12 @@ GROUP BY
     t.MES
 GO
 
--- Porcentaje de pedidos y mensajería entregados mensualmente según el rango etario de los repartidores y la localidad. Este indicador se debe tener en cuenta 
--- y sumar tanto los envíos de pedidos como los de mensajería. El porcentaje se calcula en función del total general de pedidos y envíos mensuales entregados.
+-- Porcentaje de pedidos y mensajerÃ­a entregados mensualmente segÃºn el rango etario de los repartidores y la localidad. Este indicador se debe tener en cuenta 
+-- y sumar tanto los envÃ­os de pedidos como los de mensajerÃ­a. El porcentaje se calcula en funciÃ³n del total general de pedidos y envÃ­os mensuales entregados.
 
 -- CREATE VIEW MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales AS
 
--- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
+-- Cantidad de reclamos mensuales recibidos por cada local en funciÃ³n del dÃ­a de la semana y rango horario
 CREATE VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales AS
 SELECT
     t.ANIO,
@@ -1240,8 +1235,8 @@ GROUP BY
     h.RANGO_HORARIO
 GO
 
--- Tiempo promedio de resolución de reclamos mensual según cada tipo de reclamo y rango etario de los operadores. El tiempo de resolución debe calcularse en minutos 
--- y representa la diferencia entre la fecha/hora en que se realizó el reclamo y la fecha/hora que se resolvió
+-- Tiempo promedio de resoluciÃ³n de reclamos mensual segÃºn cada tipo de reclamo y rango etario de los operadores. El tiempo de resoluciÃ³n debe calcularse en minutos 
+-- y representa la diferencia entre la fecha/hora en que se realizÃ³ el reclamo y la fecha/hora que se resolviÃ³
 CREATE VIEW MargeCreoQueOdioGDD.V_TiempoPromedioResolucion AS
 SELECT
     t.ANIO,
@@ -1276,7 +1271,7 @@ GROUP BY
     t.MES
 GO
 */
-/* --------------------------------------------- Ejecución de la migración --------------------------------------------- */
+/* --------------------------------------------- EjecuciÃ³n de la migraciÃ³n --------------------------------------------- */
 
 EXEC MargeCreoQueOdioGDD.migrar_BI_provincia;
 EXEC MargeCreoQueOdioGDD.migrar_BI_localidad;
@@ -1299,7 +1294,7 @@ EXEC MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria;
 EXEC MargeCreoQueOdioGDD.migrar_BI_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
 
-/* --------------------------------------------- Ejecución de las vistas --------------------------------------------- */
+/* --------------------------------------------- EjecuciÃ³n de las vistas --------------------------------------------- */
 /*
 SELECT * FROM MargeCreoQueOdioGDD.V_MayorCantidadPedidos;
 SELECT * FROM MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados;
