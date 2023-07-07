@@ -954,9 +954,6 @@ BEGIN
 	INNER JOIN MargeCreoQueOdioGDD.repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
 	INNER JOIN MargeCreoQueOdioGDD.BI_Estado_Pedido ep ON p.ID_ESTADO = ep.ID_ESTADO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
-	--INNER JOIN MargeCreoQueOdioGDD.BI_Localidad ll ON l.ID_LOCALIDAD = ll.ID_LOCALIDAD
-	--INNER JOIN MargeCreoQueOdioGDD.BI_Provincia prov ON ll.ID_PROVINCIA = prov.ID_PROVINCIA
-	--INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local cl ON l.ID_CATEGORIA = cl.ID_CATEGORIA_LOCAL
 	INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm ON r.ID_TIPO_MOVILIDAD = tm.ID_TIPO
 	INNER JOIN MargeCreoQueOdioGDD.medio_de_pago mp ON p.ID_MEDIO_DE_PAGO = mp.ID_MEDIO_PAGO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago tmp ON mp.ID_TIPO_MEDIO_PAGO = tmp.ID_TIPO
@@ -1091,26 +1088,21 @@ CREATE VIEW MargeCreoQueOdioGDD.V_MayorCantidadPedidos AS
 SELECT
     t.ANIO,
     t.MES,
-    l.NOMBRE,
+    l.LOCALIDAD,
     c.CATEGORIA,
-    d.DIA,
-    h.RANGO_HORARIO,
-    COUNT(*) AS CANTIDAD_PEDIDOS
-FROM
-    MargeCreoQueOdioGDD.BI_Pedido p
-    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_PEDIDO = t.ID_TIEMPO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA_PEDIDO = d.ID_DIA
-    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON p.ID_RANGO_HORARIO_PEDIDO = h.ID_HORARIO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
-    INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON l.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
-GROUP BY
-    t.ANIO,
-    t.MES,
-    l.NOMBRE,
-    c.CATEGORIA,
-    d.DIA,
-    h.RANGO_HORARIO;
+    MAX(d.DIA) 'Dia',
+    MAX(rh.RANGO_HORARIO) 'Rango Horario',
+    COUNT(*) AS CantidadPedidos
+FROM MargeCreoQueOdioGDD.BI_Pedido p
+INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
+INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
+INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
+INNER JOIN MargeCreoQueOdioGDD.BI_Localidad l ON p.ID_LOCALIDAD = l.ID_LOCALIDAD
+INNER JOIN MargeCreoQueOdioGDD.BI_Local loc ON p.ID_LOCAL = loc.ID_LOCAL
+INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON loc.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
+GROUP BY l.LOCALIDAD, c.CATEGORIA, t.ANIO, t.MES
 GO
+
 
 -- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
