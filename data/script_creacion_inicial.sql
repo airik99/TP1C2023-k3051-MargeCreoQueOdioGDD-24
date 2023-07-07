@@ -232,6 +232,12 @@ IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_direcciones_x
     DROP PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones_x_usuarios;
 GO
 
+/* --------------------------------------------- Limpiar funciones --------------------------------------------- */
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerLocalidadActiva')
+DROP FUNCTION MargeCreoQueOdioGDD.obtenerLocalidadActiva
+GO
+
 /*********************** Limpiar Schema ***********************/
 IF EXISTS (SELECT name FROM sys.schemas WHERE name = 'MargeCreoQueOdioGDD')
 BEGIN
@@ -417,6 +423,7 @@ PRIMARY KEY (ID_TIPO)
 CREATE TABLE MargeCreoQueOdioGDD.localidadxrepartidor (
 ID_LOCALIDAD INT NOT NULL, --FK
 ID_REPARTIDOR INT NOT NULL, --FK
+ACTIVO NVARCHAR(255) -- localidad en la que está activo el repartidor
 );
 
 -------------------------- DIRECCION --------------------------
@@ -710,6 +717,30 @@ FOREIGN KEY (ID_TIPO_RECLAMO) REFERENCES MargeCreoQueOdioGDD.tipo_reclamo;
 ALTER TABLE MargeCreoQueOdioGDD.operador
 ADD CONSTRAINT FK_DIRECCION_OPERADOR
 FOREIGN KEY (ID_DIRECCION) REFERENCES MargeCreoQueOdioGDD.direccion
+GO
+
+/* --------------------------------------------- Funciones --------------------------------------------- */
+
+CREATE FUNCTION MargeCreoQueOdioGDD.obtenerLocalidadActiva(@repartidorId INT) RETURNS VARCHAR(255) AS
+BEGIN
+  DECLARE @localidadActiva VARCHAR(255);
+  
+  SELECT TOP 1 @localidadActiva = Localidad_Activa
+  FROM (
+    SELECT ENVIO_MENSAJERIA_LOCALIDAD AS Localidad_Activa, ENVIO_MENSAJERIA_FECHA_ENTREGA AS Fecha_Entrega, REPARTIDOR_DNI, REPARTIDOR_EMAIL
+    FROM gd_esquema.Maestra
+    INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.DNI = REPARTIDOR_DNI AND r.ID_REPARTIDOR = @repartidorId
+    WHERE ENVIO_MENSAJERIA_FECHA_ENTREGA IS NOT NULL
+    UNION
+    SELECT LOCAL_LOCALIDAD AS Localidad_Activa, PEDIDO_FECHA_ENTREGA AS Fecha_Entrega, REPARTIDOR_DNI, REPARTIDOR_EMAIL
+    FROM gd_esquema.Maestra
+    INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.DNI = REPARTIDOR_DNI AND r.ID_REPARTIDOR = @repartidorId
+    WHERE PEDIDO_FECHA_ENTREGA IS NOT NULL
+  ) AS Subquery
+  ORDER BY Fecha_Entrega DESC;
+
+  RETURN @localidadActiva;
+END
 GO
 
 /*********************** Creamos los stores procedures ***********************/
@@ -1047,19 +1078,22 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
 GO
 
 ---------------------------- LocalidadXRepartidor ----------------------------
+
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades_x_repartidor
 AS
   BEGIN
 	PRINT 'Se comienzan a migrar las localidades x repartidor...'
-    INSERT INTO localidadxrepartidor(ID_REPARTIDOR, ID_LOCALIDAD)
-		SELECT (SELECT TOP 1 ID_REPARTIDOR FROM MargeCreoQueOdioGDD.repartidor WHERE repartidor.DNI = REPARTIDOR_DNI AND repartidor.EMAIL = REPARTIDOR_EMAIL) AS ID_REPARTIDOR,
-			   lo.ID_LOCALIDAD AS ID_LOCALIDAD
+    INSERT INTO localidadxrepartidor(ID_REPARTIDOR, ID_LOCALIDAD, ACTIVO)
+		SELECT ID_REPARTIDOR,
+			   lo.ID_LOCALIDAD AS ID_LOCALIDAD,
+			   ' ' AS ACTIVO
+			   --MargeCreoQueOdioGDD.obtenerLocalidadActiva(ID_REPARTIDOR) -- NO FUNCIONA TARDA MUCHO
 		FROM gd_esquema.Maestra
 		INNER JOIN MargeCreoQueOdioGDD.localidad AS lo ON (lo.NOMBRE = isnull(LOCAL_LOCALIDAD, ENVIO_MENSAJERIA_LOCALIDAD))
+		INNER JOIN MargeCreoQueOdioGDD.repartidor ON repartidor.DNI = REPARTIDOR_DNI AND repartidor.EMAIL = REPARTIDOR_EMAIL
 		WHERE REPARTIDOR_DNI IS NOT NULL
   END
 GO
-
 ---------------------------- Operador ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
  AS
