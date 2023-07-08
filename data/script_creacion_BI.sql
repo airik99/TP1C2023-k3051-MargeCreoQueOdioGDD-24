@@ -454,7 +454,7 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Reclamo (
 	ID_RANGO_HORARIO_SOLUCION INT NOT NULL, -- FK
 	TIPO_RECLAMO NVARCHAR(255) NOT NULL, --FK
 	ID_ESTADO INT NOT NULL, -- FK
-	ID_RANGO_ETARIO_OPERADORES INT NOT NULL, -- FK
+	ID_RANGO_ETARIO_OPERADOR INT NOT NULL, -- FK
 	ID_LOCAL INT NOT NULL, --FK
 	TIEMPO_TOTAL_RESOLUCION FLOAT NOT NULL, -- Tiempo que tardo en resolverse el reclamo segun tipo de reclamo y rango etario operadores
 	MONTO_CUPONES_GENERADOS FLOAT NOT NULL, -- Este es el monto total generado en cupones segun mes
@@ -555,7 +555,7 @@ FOREIGN KEY (ID_ESTADO) REFERENCES MargeCreoQueOdioGDD.BI_Estado_Reclamo
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
 ADD CONSTRAINT FK_BI_RANGO_ETARIO_RECLAMO_ID
-FOREIGN KEY (ID_RANGO_ETARIO_OPERADORES) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Etario
+FOREIGN KEY (ID_RANGO_ETARIO_OPERADOR) REFERENCES MargeCreoQueOdioGDD.BI_Rango_Etario
 
 ALTER TABLE MargeCreoQueOdioGDD.BI_Reclamo
 ADD CONSTRAINT FK_BI_LOCAL_RECLAMO_ID
@@ -921,12 +921,10 @@ BEGIN
 		   p.ID_ESTADO,
 		   p.ID_LOCAL,
 		   (SELECT cl.CATEGORIA FROM MargeCreoQueOdioGDD.BI_Categoria_Local cl WHERE cl.ID_CATEGORIA_LOCAL = l.ID_CATEGORIA) AS CATEGORIA_LOCAL,
-		   l.ID_LOCALIDAD, -- localidad local
+		   l.ID_LOCALIDAD,
 		   tmp.ID_TIPO AS ID_TIPO_MEDIO_PAGO,
-		   --(SELECT re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re WHERE re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(u.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_USUARIO,
-		   --(SELECT re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re WHERE re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_REPARTIDOR,
-		   reu.ID_ETARIO,
-		   rer.ID_ETARIO,
+		   reu.ID_ETARIO AS ID_RANGO_ETARIO_USUARIO,
+		   rer.ID_ETARIO AS ID_RANGO_ETARIO_REPARTIDOR,
 		   tm.ID_TIPO AS ID_TIPO_MOVILIDAD_REPARTIDOR,
 		   SUM(MargeCreoQueOdioGDD.restar(e.TIEMPO_ESTIMADO_ENTREGA, MargeCreoQueOdioGDD.calcularDiferenciaMinutos(p.FECHA_HORA_PEDIDO, p.FECHA_HORA_ENTREGA))) AS DESVIO_TIEMPO_ENTREGA,
 		   COUNT(p.NRO_PEDIDO) AS CANTIDAD_PEDIDOS,
@@ -964,8 +962,6 @@ BEGIN
 END
 GO
 
---select * from MargeCreoQueOdioGDD.BI_Pedido -- 59862 filas ahora
-
 -- Envio Mensajeria
 
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria
@@ -982,10 +978,7 @@ BEGIN
 		   r2.ID_HORARIO AS ID_RANGO_HORARIO_ENTREGA,
 		   em.ID_ESTADO,
 		   lo.ID_LOCALIDAD AS ID_LOCALIDAD_DESTINO,
-		   --e.ID_LOCALIDAD_DESTINO AS ID_LOCALIDAD_DESTINO,
-		   --(SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.repartidor r ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_REPARTIDOR,
-		   --SELECT tm.ID_TIPO FROM MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm WHERE r.ID_TIPO_MOVILIDAD = tm.ID_TIPO) AS ID_TIPO_MOVILIDAD_REPARTIDOR,
-		   rer.ID_ETARIO ID_RANGO_ETARIO_REPARTIDOR,
+		   rer.ID_ETARIO AS ID_RANGO_ETARIO_REPARTIDOR,
 		   tm.ID_TIPO AS ID_TIPO_MOVILIDAD_REPARTIDOR,
 		   tmp.ID_TIPO AS ID_TIPO_MEDIO_PAGO,
 		   SUM(MargeCreoQueOdioGDD.restar(e.TIEMPO_ESTIMADO_ENTREGA, MargeCreoQueOdioGDD.calcularDiferenciaMinutos(em.FECHA_HORA_PEDIDO, em.FECHA_HORA_ENTREGA))) AS DESVIO_TIEMPO_ENTREGA,
@@ -1001,7 +994,6 @@ BEGIN
 	INNER JOIN MargeCreoQueOdioGDD.tipo_paquete tp ON em.ID_TIPO_PAQUETE = tp.ID_TIPO_PAQUETE
 	INNER JOIN MargeCreoQueOdioGDD.medio_de_pago mp ON em.ID_MEDIO_PAGO = mp.ID_MEDIO_PAGO
 	INNER JOIN MargeCreoQueOdioGDD.tipo_medio_pago tmp ON mp.ID_TIPO_MEDIO_PAGO = tmp.ID_TIPO
-	--INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON em.ID_ENVIO = e.NRO_ENVIO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm ON r.ID_TIPO_MOVILIDAD = tm.ID_TIPO
     INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON YEAR(em.FECHA_HORA_PEDIDO) = t.ANIO AND MargeCreoQueOdioGDD.mesDelAnio(DATEPART(MONTH, em.FECHA_HORA_PEDIDO)) = t.MES 
     INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, FECHA_HORA_PEDIDO)) = d.DIA
@@ -1013,16 +1005,13 @@ BEGIN
 		     r1.ID_HORARIO,
 		     r2.ID_HORARIO,
 		     em.ID_ESTADO,
-		     lo.ID_LOCALIDAD, -- localidad destino
+		     lo.ID_LOCALIDAD,
 			 tmp.ID_TIPO,
 			 tp.ID_TIPO_PAQUETE,
 			 rer.ID_ETARIO,
 			 tm.ID_TIPO
 END
 GO
-
---select * from MargeCreoQueOdioGDD.envio_mensajeria -- 37147 filas tabla modelo transaccional, 36678 ahora
---select * from MargeCreoQueOdioGDD.BI_Envio_Mensajeria
 
 -- Reclamo
 
@@ -1031,15 +1020,14 @@ AS
 BEGIN
     PRINT 'Se comienzan a migrar los reclamos...';
     INSERT INTO MargeCreoQueOdioGDD.BI_Reclamo(ID_TIEMPO, ID_DIA, ID_RANGO_HORARIO_INICIO, ID_RANGO_HORARIO_SOLUCION, TIPO_RECLAMO, ID_ESTADO,
-											   ID_RANGO_ETARIO_OPERADORES, ID_LOCAL, TIEMPO_TOTAL_RESOLUCION, MONTO_CUPONES_GENERADOS, CANTIDAD_RECLAMOS)
+											   ID_RANGO_ETARIO_OPERADOR, ID_LOCAL, TIEMPO_TOTAL_RESOLUCION, MONTO_CUPONES_GENERADOS, CANTIDAD_RECLAMOS)
     SELECT t.ID_TIEMPO AS ID_TIEMPO,
 		   d.ID_DIA AS ID_DIA,
 		   r1.ID_HORARIO AS ID_RANGO_HORARIO_INICIO,
 		   r2.ID_HORARIO AS ID_RANGO_HORARIO_SOLUCION,
 		   tr.TIPO_RECLAMO,
 		   r.ID_ESTADO,
-		   --(SELECT re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.operador o ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(o.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_OPERADOR,
-	       ror.ID_ETARIO AS ID_RANGO_ETARIO_OPERADOR,
+		   ror.ID_ETARIO AS ID_RANGO_ETARIO_OPERADOR,
 		   l.ID_LOCAL,
 		   SUM(MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_INICIO, FECHA_HORA_SOLUCION)) AS TIEMPO_TOTAL_RESOLUCION, 
 		   SUM(cp.MONTO) AS MONTO_CUPONES_GENERADOS, 
@@ -1048,7 +1036,6 @@ BEGIN
 	INNER JOIN MargeCreoQueOdioGDD.operador o ON r.ID_OPERADOR = o.ID_OPERADOR
 	INNER JOIN MargeCreoQueOdioGDD.tipo_reclamo tr ON tr.ID_TIPO_RECLAMO = r.ID_TIPO_RECLAMO
 	INNER JOIN MargeCreoQueOdioGDD.descuentoxreclamo dxr ON r.NRO_RECLAMO = dxr.ID_RECLAMO
-	--INNER JOIN MargeCreoQueOdioGDD.cupon_descuento cp ON dxr.ID_CUPON = cp.CODIGO
 	INNER JOIN MargeCreoQueOdioGDD.pedido p ON p.NRO_PEDIDO = r.ID_PEDIDO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Cupon_Descuento cp ON cp.CODIGO = dxr.ID_CUPON
 	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON l.ID_LOCAL = p.ID_LOCAL
@@ -1068,8 +1055,6 @@ BEGIN
 			 l.ID_LOCAL
 END
 GO
-
---select * from MargeCreoQueOdioGDD.BI_Reclamo -- 11161 filas, 11083 ahora
 
 -- Cupon Descuento
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_cupon_descuento
@@ -1133,30 +1118,6 @@ GROUP BY
 	p.ID_LOCALIDAD,
 	p.CATEGORIA_LOCAL
 GO
-/*														PRUEBAS
-SELECT t.ID_TIEMPO
-FROM MargeCreoQueOdioGDD.BI_Tiempo t
-WHERE t.ANIO = '2023' AND t.MES = 'Abril'
-
-SELECT d.DIA, SUM(p.CANTIDAD_PEDIDOS), p.CATEGORIA_LOCAL
-FROM MargeCreoQueOdioGDD.BI_Pedido p
-INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
-INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
-WHERE p.ID_TIEMPO = '5' AND p.ID_LOCALIDAD = '22' AND p.CATEGORIA_LOCAL LIKE '%Parrilla%'
-GROUP BY d.DIA, rh.RANGO_HORARIO, p.CATEGORIA_LOCAL
-ORDER BY SUM(p.CANTIDAD_PEDIDOS) DESC
-
-select p.ID_LOCALIDAD
-FROM MargeCreoQueOdioGDD.BI_Pedido p
-
-SELECT rh.RANGO_HORARIO, SUM(p.CANTIDAD_PEDIDOS)
-FROM MargeCreoQueOdioGDD.BI_Pedido p
-INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
-INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
-WHERE p.ID_TIEMPO = '6' AND p.ID_LOCALIDAD = '176' AND p.CATEGORIA_LOCAL LIKE '%Parrilla%'
-GROUP BY d.DIA, rh.RANGO_HORARIO
-ORDER BY SUM(p.CANTIDAD_PEDIDOS) DESC
-*/
 
 -- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
@@ -1275,7 +1236,6 @@ SELECT
     t.ANIO,
     t.MES,
 	p.ID_LOCAL,
-    --AVG(p.CALIFICACION) AS PROMEDIO_CALIFICACION,
 	SUM(p.CALIFICACION) / SUM(p.CANTIDAD_PEDIDOS) AS PROMEDIO_CALIFICACION
 FROM
     MargeCreoQueOdioGDD.BI_Pedido p
@@ -1288,7 +1248,6 @@ GO
 
 -- Porcentaje de pedidos y mensajería entregados mensualmente según el rango etario de los repartidores y la localidad. Este indicador se debe tener en cuenta 
 -- y sumar tanto los envíos de pedidos como los de mensajería. El porcentaje se calcula en función del total general de pedidos y envíos mensuales entregados.
-
 CREATE VIEW MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales AS
 WITH TotalEntregados AS (
     SELECT
@@ -1355,8 +1314,6 @@ FROM
     PorcentajeEntregas;
 GO
 
---select * from MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales;
-
 -- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
 CREATE VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales AS
 SELECT
@@ -1392,7 +1349,7 @@ SELECT
 FROM
     MargeCreoQueOdioGDD.BI_Reclamo r
     JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON r.ID_TIEMPO = t.ID_TIEMPO
-    JOIN MargeCreoQueOdioGDD.BI_Rango_Etario re ON r.ID_RANGO_ETARIO_OPERADORES = re.ID_ETARIO
+    JOIN MargeCreoQueOdioGDD.BI_Rango_Etario re ON r.ID_RANGO_ETARIO_OPERADOR = re.ID_ETARIO
 GROUP BY
     t.MES,
     r.TIPO_RECLAMO,
