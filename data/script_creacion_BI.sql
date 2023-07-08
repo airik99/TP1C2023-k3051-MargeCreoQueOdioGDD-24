@@ -474,7 +474,7 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Pedido (
 	ID_RANGO_ETARIO_USUARIO INT NOT NULL, -- FK
 	ID_RANGO_ETARIO_REPARTIDOR INT NOT NULL, -- FK
 	ID_TIPO_MOVILIDAD_REPARTIDOR INT NOT NULL, -- FK
-	DESVIO_PROMEDIO_ENTREGA FLOAT, -- Este es el desvio promedio de entrega segun tipo de movilidad, dia y rango horario
+	DESVIO_TIEMPO_ENTREGA FLOAT, -- Este es el desvio promedio de entrega segun tipo de movilidad, dia y rango horario
 	CANTIDAD_PEDIDOS INT, -- Esta es la cantidad de pedidos hechos segun dia, rango horario, localidad, categoria local, mes y año
 	TOTAL_PRODUCTOS FLOAT NOT NULL,
 	TOTAL_CUPONES FLOAT NOT NULL, -- Monto de cupones usados
@@ -492,7 +492,7 @@ CREATE TABLE MargeCreoQueOdioGDD.BI_Envio_Mensajeria (
 	ID_RANGO_ETARIO_REPARTIDOR INT NOT NULL, -- FK
 	ID_TIPO_MOVILIDAD_REPARTIDOR INT NOT NULL, -- FK
 	ID_TIPO_MEDIO_PAGO INT NOT NULL, -- FK
-	DESVIO_PROMEDIO_ENTREGA FLOAT NOT NULL, -- Este es el desvio promedio de entrega segun tipo de movilidad, dia y rango horario
+	DESVIO_TIEMPO_ENTREGA FLOAT NOT NULL, -- Este es el desvio promedio de entrega segun tipo de movilidad, dia y rango horario
 	ID_TIPO_PAQUETE INT NOT NULL, -- FK
 	VALOR_ASEGURADO_PAQUETE FLOAT NOT NULL, -- Este es el valor asegurado segun tipo de paquete
 	CANTIDAD_ENVIOS_MENSAJERIA INT NOT NULL, -- Esta es la cantidad de servicios de mensajeria segun mes, rango etario repartidores y localidad
@@ -913,7 +913,7 @@ BEGIN
     PRINT 'Se comienzan a migrar los pedidos...';
     INSERT INTO MargeCreoQueOdioGDD.BI_Pedido(ID_TIEMPO, ID_DIA, ID_RANGO_HORARIO_PEDIDO, ID_RANGO_HORARIO_ENTREGA, ID_ESTADO, ID_LOCAL, CATEGORIA_LOCAL,
 											  ID_LOCALIDAD, ID_TIPO_MEDIO_PAGO, ID_RANGO_ETARIO_USUARIO, ID_RANGO_ETARIO_REPARTIDOR, ID_TIPO_MOVILIDAD_REPARTIDOR, 
-											  DESVIO_PROMEDIO_ENTREGA, CANTIDAD_PEDIDOS, TOTAL_PRODUCTOS, TOTAL_CUPONES, PRECIO_ENVIO, CALIFICACION)
+											  DESVIO_TIEMPO_ENTREGA, CANTIDAD_PEDIDOS, TOTAL_PRODUCTOS, TOTAL_CUPONES, PRECIO_ENVIO, CALIFICACION)
 	SELECT t.ID_TIEMPO AS ID_TIEMPO,
 		   d.ID_DIA AS ID_DIA,
 		   r1.ID_HORARIO AS ID_RANGO_HORARIO_PEDIDO,
@@ -923,16 +923,19 @@ BEGIN
 		   (SELECT cl.CATEGORIA FROM MargeCreoQueOdioGDD.BI_Categoria_Local cl WHERE cl.ID_CATEGORIA_LOCAL = l.ID_CATEGORIA) AS CATEGORIA_LOCAL,
 		   l.ID_LOCALIDAD, -- localidad local
 		   tmp.ID_TIPO AS ID_TIPO_MEDIO_PAGO,
-		   (SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.usuario u ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(u.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_USUARIO,
-		   (SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.repartidor r ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_REPARTIDOR,
+		   --(SELECT re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re WHERE re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(u.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_USUARIO,
+		   --(SELECT re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re WHERE re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_REPARTIDOR,
+		   reu.ID_ETARIO,
+		   rer.ID_ETARIO,
 		   tm.ID_TIPO AS ID_TIPO_MOVILIDAD_REPARTIDOR,
-		   AVG(MargeCreoQueOdioGDD.restar(e.TIEMPO_ESTIMADO_ENTREGA, MargeCreoQueOdioGDD.calcularDiferenciaMinutos(p.FECHA_HORA_PEDIDO, p.FECHA_HORA_ENTREGA))) AS DESVIO_PROMEDIO_ENTREGA,
+		   SUM(MargeCreoQueOdioGDD.restar(e.TIEMPO_ESTIMADO_ENTREGA, MargeCreoQueOdioGDD.calcularDiferenciaMinutos(p.FECHA_HORA_PEDIDO, p.FECHA_HORA_ENTREGA))) AS DESVIO_TIEMPO_ENTREGA,
 		   COUNT(p.NRO_PEDIDO) AS CANTIDAD_PEDIDOS,
 		   SUM(TOTAL_PRODUCTOS) AS TOTAL_PRODUCTOS, 
 		   SUM(TOTAL_CUPONES) AS TOTAL_CUPONES,
 		   SUM((e.PRECIO_ENVIO + e.PROPINA)) AS PRECIO_ENVIO,
 		   SUM(CALIFICACION) AS CALIFICACION
 	FROM MargeCreoQueOdioGDD.pedido p
+	INNER JOIN MargeCreoQueOdioGDD.usuario u ON p.ID_USUARIO = u.ID_USUARIO
 	INNER JOIN MargeCreoQueOdioGDD.envio e ON p.ID_ENVIO = e.NRO_ENVIO
 	INNER JOIN MargeCreoQueOdioGDD.repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
 	INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm ON r.ID_TIPO_MOVILIDAD = tm.ID_TIPO
@@ -940,6 +943,8 @@ BEGIN
 	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
 	INNER JOIN MargeCreoQueOdioGDD.medio_de_pago mp ON p.ID_MEDIO_DE_PAGO = mp.ID_MEDIO_PAGO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Medio_Pago tmp ON mp.ID_TIPO_MEDIO_PAGO = tmp.ID_TIPO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario reu ON reu.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(u.FECHA_NACIMIENTO))
+	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario rer ON rer.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))
 	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON YEAR(p.FECHA_HORA_PEDIDO) = t.ANIO AND MargeCreoQueOdioGDD.mesDelAnio(DATEPART(MONTH, p.FECHA_HORA_PEDIDO)) = t.MES
 	INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, p.FECHA_HORA_PEDIDO)) = d.DIA
 	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario r1 ON MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(p.FECHA_HORA_PEDIDO)) = r1.RANGO_HORARIO
@@ -950,7 +955,8 @@ BEGIN
 			 r2.ID_HORARIO, 
 			 p.ID_LOCAL, 
 			 p.ID_ESTADO,
-			 p.ID_USUARIO, 
+			 reu.ID_ETARIO,
+			 rer.ID_ETARIO,
 			 l.ID_LOCALIDAD, 
 			 l.ID_CATEGORIA,
 			 tmp.ID_TIPO,
@@ -958,7 +964,7 @@ BEGIN
 END
 GO
 
---select * from MargeCreoQueOdioGDD.BI_Pedido
+--select * from MargeCreoQueOdioGDD.BI_Pedido -- 59862 filas ahora
 
 -- Envio Mensajeria
 
@@ -968,45 +974,54 @@ BEGIN
     PRINT 'Se comienzan a migrar los envios mensajeria...';
     INSERT INTO MargeCreoQueOdioGDD.BI_Envio_Mensajeria(ID_TIEMPO, ID_DIA, ID_RANGO_HORARIO_PEDIDO, ID_RANGO_HORARIO_ENTREGA, ID_ESTADO, 
 														ID_LOCALIDAD_DESTINO, ID_RANGO_ETARIO_REPARTIDOR, ID_TIPO_MOVILIDAD_REPARTIDOR, 
-														ID_TIPO_MEDIO_PAGO, DESVIO_PROMEDIO_ENTREGA, ID_TIPO_PAQUETE, VALOR_ASEGURADO_PAQUETE,
+														ID_TIPO_MEDIO_PAGO, DESVIO_TIEMPO_ENTREGA, ID_TIPO_PAQUETE, VALOR_ASEGURADO_PAQUETE,
 														CANTIDAD_ENVIOS_MENSAJERIA, TOTAL_SERVICIO_MENSAJERIA)													
     SELECT t.ID_TIEMPO,
 		   d.ID_DIA,
 		   r1.ID_HORARIO AS ID_RANGO_HORARIO_PEDIDO,
 		   r2.ID_HORARIO AS ID_RANGO_HORARIO_ENTREGA,
 		   em.ID_ESTADO,
-		   e.ID_LOCALIDAD_DESTINO AS ID_LOCALIDAD_DESTINO,
-		   --(SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.usuario u ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(u.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_USUARIO,
-		   (SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.repartidor r ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_REPARTIDOR,
-		   (SELECT tm.ID_TIPO FROM MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm WHERE e.ID_TIPO_MOVILIDAD_REPARTIDORES = tm.ID_TIPO) AS ID_TIPO_MOVILIDAD_REPARTIDOR,
+		   lo.ID_LOCALIDAD AS ID_LOCALIDAD_DESTINO,
+		   --e.ID_LOCALIDAD_DESTINO AS ID_LOCALIDAD_DESTINO,
+		   --(SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.repartidor r ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_REPARTIDOR,
+		   --SELECT tm.ID_TIPO FROM MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm WHERE r.ID_TIPO_MOVILIDAD = tm.ID_TIPO) AS ID_TIPO_MOVILIDAD_REPARTIDOR,
+		   rer.ID_ETARIO ID_RANGO_ETARIO_REPARTIDOR,
+		   tm.ID_TIPO AS ID_TIPO_MOVILIDAD_REPARTIDOR,
 		   tmp.ID_TIPO AS ID_TIPO_MEDIO_PAGO,
-		   AVG(MargeCreoQueOdioGDD.restar(e.TIEMPO_ESTIMADO_ENTREGA, MargeCreoQueOdioGDD.calcularDiferenciaMinutos(em.FECHA_HORA_PEDIDO, em.FECHA_HORA_ENTREGA))) AS DESVIO_PROMEDIO_ENTREGA,
+		   SUM(MargeCreoQueOdioGDD.restar(e.TIEMPO_ESTIMADO_ENTREGA, MargeCreoQueOdioGDD.calcularDiferenciaMinutos(em.FECHA_HORA_PEDIDO, em.FECHA_HORA_ENTREGA))) AS DESVIO_TIEMPO_ENTREGA,
 		   tp.ID_TIPO_PAQUETE,
 		   SUM(tp.VALOR_ASEGURADO) AS VALOR_ASEGURADO_PAQUETE,
 		   COUNT(em.NRO_ENVIO_MENSAJERIA) AS CANTIDAD_ENVIOS_MENSAJERIA,
 		   SUM(em.TOTAL_SERVICIO_MENSAJERIA) AS TOTAL_SERVICIO_MENSAJERIA
     FROM MargeCreoQueOdioGDD.envio_mensajeria em
+	INNER JOIN MargeCreoQueOdioGDD.envio e ON em.ID_ENVIO = e.NRO_ENVIO
+	INNER JOIN MargeCreoQueOdioGDD.repartidor r ON e.ID_REPARTIDOR = r.ID_REPARTIDOR
+	INNER JOIN MargeCreoQueOdioGDD.direccion di ON di.ID_DIRECCION = e.ID_DIRECCION_DESTINO
+	INNER JOIN MargeCreoQueOdioGDD.localidad lo ON di.ID_LOCALIDAD = lo.ID_LOCALIDAD
 	INNER JOIN MargeCreoQueOdioGDD.tipo_paquete tp ON em.ID_TIPO_PAQUETE = tp.ID_TIPO_PAQUETE
 	INNER JOIN MargeCreoQueOdioGDD.medio_de_pago mp ON em.ID_MEDIO_PAGO = mp.ID_MEDIO_PAGO
 	INNER JOIN MargeCreoQueOdioGDD.tipo_medio_pago tmp ON mp.ID_TIPO_MEDIO_PAGO = tmp.ID_TIPO
-	INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON em.ID_ENVIO = e.NRO_ENVIO
+	--INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON em.ID_ENVIO = e.NRO_ENVIO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm ON r.ID_TIPO_MOVILIDAD = tm.ID_TIPO
     INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON YEAR(em.FECHA_HORA_PEDIDO) = t.ANIO AND MargeCreoQueOdioGDD.mesDelAnio(DATEPART(MONTH, em.FECHA_HORA_PEDIDO)) = t.MES 
     INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, FECHA_HORA_PEDIDO)) = d.DIA
 	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario r1 ON MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(em.FECHA_HORA_PEDIDO)) = r1.RANGO_HORARIO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario r2 ON MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(em.FECHA_HORA_ENTREGA)) = r2.RANGO_HORARIO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario rer ON rer.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(r.FECHA_NACIMIENTO))
 	GROUP BY t.ID_TIEMPO,
 		     d.ID_DIA,
 		     r1.ID_HORARIO,
 		     r2.ID_HORARIO,
 		     em.ID_ESTADO,
-		     e.ID_LOCALIDAD_DESTINO,
+		     lo.ID_LOCALIDAD, -- localidad destino
 			 tmp.ID_TIPO,
 			 tp.ID_TIPO_PAQUETE,
-			 e.ID_TIPO_MOVILIDAD_REPARTIDORES
+			 rer.ID_ETARIO,
+			 tm.ID_TIPO
 END
 GO
 
---select * from MargeCreoQueOdioGDD.envio_mensajeria -- 37147 filas tabla modelo transaccional
+--select * from MargeCreoQueOdioGDD.envio_mensajeria -- 37147 filas tabla modelo transaccional, 36678 ahora
 --select * from MargeCreoQueOdioGDD.BI_Envio_Mensajeria
 
 -- Reclamo
@@ -1023,12 +1038,14 @@ BEGIN
 		   r2.ID_HORARIO AS ID_RANGO_HORARIO_SOLUCION,
 		   tr.TIPO_RECLAMO,
 		   r.ID_ESTADO,
-		   (SELECT TOP 1 re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.operador o ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(o.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_OPERADOR,
-	       l.ID_LOCAL,
+		   --(SELECT re.ID_ETARIO FROM MargeCreoQueOdioGDD.BI_Rango_Etario re INNER JOIN MargeCreoQueOdioGDD.operador o ON re.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(o.FECHA_NACIMIENTO))) AS ID_RANGO_ETARIO_OPERADOR,
+	       ror.ID_ETARIO AS ID_RANGO_ETARIO_OPERADOR,
+		   l.ID_LOCAL,
 		   SUM(MargeCreoQueOdioGDD.calcularDiferenciaMinutos(FECHA_HORA_INICIO, FECHA_HORA_SOLUCION)) AS TIEMPO_TOTAL_RESOLUCION, 
 		   SUM(cp.MONTO) AS MONTO_CUPONES_GENERADOS, 
 		   COUNT(r.NRO_RECLAMO) AS CANTIDAD_RECLAMOS
     FROM MargeCreoQueOdioGDD.reclamo r
+	INNER JOIN MargeCreoQueOdioGDD.operador o ON r.ID_OPERADOR = o.ID_OPERADOR
 	INNER JOIN MargeCreoQueOdioGDD.tipo_reclamo tr ON tr.ID_TIPO_RECLAMO = r.ID_TIPO_RECLAMO
 	INNER JOIN MargeCreoQueOdioGDD.descuentoxreclamo dxr ON r.NRO_RECLAMO = dxr.ID_RECLAMO
 	--INNER JOIN MargeCreoQueOdioGDD.cupon_descuento cp ON dxr.ID_CUPON = cp.CODIGO
@@ -1039,18 +1056,20 @@ BEGIN
     INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON MargeCreoQueOdioGDD.DiaSemana(DATENAME(WEEKDAY, FECHA_HORA_PEDIDO)) = d.DIA
 	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario r1 ON MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(r.FECHA_HORA_INICIO)) = r1.RANGO_HORARIO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario r2 ON MargeCreoQueOdioGDD.rangoHorario(MargeCreoQueOdioGDD.obtenerHora(r.FECHA_HORA_SOLUCION)) = r2.RANGO_HORARIO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario ror ON ror.RANGO_ETARIO = MargeCreoQueOdioGDD.rangoEtario(MargeCreoQueOdioGDD.edadActual(o.FECHA_NACIMIENTO))
 	WHERE cp.ES_RECLAMO LIKE '%Si%'
 	GROUP BY t.ID_TIEMPO,
 		     d.ID_DIA,
 		     r1.ID_HORARIO,
 		     r2.ID_HORARIO,
 			 r.ID_ESTADO,
+			 ror.ID_ETARIO,
 			 tr.TIPO_RECLAMO,
 			 l.ID_LOCAL
 END
 GO
 
---select * from MargeCreoQueOdioGDD.BI_Reclamo -- 11161 filas
+--select * from MargeCreoQueOdioGDD.BI_Reclamo -- 11161 filas, 11083 ahora
 
 -- Cupon Descuento
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_cupon_descuento
@@ -1088,90 +1107,148 @@ GO
 
 -- Día de la semana y franja horaria con mayor cantidad de pedidos según la localidad y categoría del local, para cada mes de cada año.
 CREATE VIEW MargeCreoQueOdioGDD.V_MayorCantidadPedidos AS
-SELECT
+SELECT DISTINCT
     t.ANIO,
     t.MES,
-    l.NOMBRE,
-    c.CATEGORIA,
-    d.DIA,
-    h.RANGO_HORARIO,
-    COUNT(*) AS CANTIDAD_PEDIDOS
+	(SELECT TOP 1 d1.DIA FROM MargeCreoQueOdioGDD.BI_Pedido p1 INNER JOIN MargeCreoQueOdioGDD.BI_Dia d1 ON p1.ID_DIA = d1.ID_DIA
+	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh1 ON p1.ID_RANGO_HORARIO_PEDIDO = rh1.ID_HORARIO 
+	WHERE p1.ID_TIEMPO = t.ID_TIEMPO AND p1.ID_LOCALIDAD = p.ID_LOCALIDAD AND p1.CATEGORIA_LOCAL = p.CATEGORIA_LOCAL
+	GROUP BY d1.DIA, rh1.RANGO_HORARIO ORDER BY SUM(p1.CANTIDAD_PEDIDOS) DESC) AS DIA_DE_MAS_PEDIDOS,
+	(SELECT TOP 1 rh2.RANGO_HORARIO FROM MargeCreoQueOdioGDD.BI_Pedido p2 INNER JOIN MargeCreoQueOdioGDD.BI_Dia d2 ON p2.ID_DIA = d2.ID_DIA
+	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh2 ON p2.ID_RANGO_HORARIO_PEDIDO = rh2.ID_HORARIO
+	WHERE p2.ID_TIEMPO = t.ID_TIEMPO AND p2.ID_LOCALIDAD = p.ID_LOCALIDAD AND p2.CATEGORIA_LOCAL = p.CATEGORIA_LOCAL
+	GROUP BY d2.DIA, rh2.RANGO_HORARIO ORDER BY SUM(p2.CANTIDAD_PEDIDOS) DESC) AS HORARIO_DE_MAS_PEDIDOS,
+	p.ID_LOCALIDAD,
+	p.CATEGORIA_LOCAL
 FROM
     MargeCreoQueOdioGDD.BI_Pedido p
     INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
     INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
-    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON p.ID_RANGO_HORARIO_PEDIDO = h.ID_HORARIO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
     INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
-    INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON l.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
 GROUP BY
     t.ANIO,
     t.MES,
-    l.NOMBRE,
-    c.CATEGORIA,
-    d.DIA,
-    h.RANGO_HORARIO;
+	t.ID_TIEMPO,
+	p.ID_LOCALIDAD,
+	p.CATEGORIA_LOCAL
 GO
+/*														PRUEBAS
+SELECT t.ID_TIEMPO
+FROM MargeCreoQueOdioGDD.BI_Tiempo t
+WHERE t.ANIO = '2023' AND t.MES = 'Abril'
 
+SELECT d.DIA, SUM(p.CANTIDAD_PEDIDOS), p.CATEGORIA_LOCAL
+FROM MargeCreoQueOdioGDD.BI_Pedido p
+INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
+INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
+WHERE p.ID_TIEMPO = '5' AND p.ID_LOCALIDAD = '22' AND p.CATEGORIA_LOCAL LIKE '%Parrilla%'
+GROUP BY d.DIA, rh.RANGO_HORARIO, p.CATEGORIA_LOCAL
+ORDER BY SUM(p.CANTIDAD_PEDIDOS) DESC
+
+select p.ID_LOCALIDAD
+FROM MargeCreoQueOdioGDD.BI_Pedido p
+
+SELECT rh.RANGO_HORARIO, SUM(p.CANTIDAD_PEDIDOS)
+FROM MargeCreoQueOdioGDD.BI_Pedido p
+INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
+INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
+WHERE p.ID_TIEMPO = '6' AND p.ID_LOCALIDAD = '176' AND p.CATEGORIA_LOCAL LIKE '%Parrilla%'
+GROUP BY d.DIA, rh.RANGO_HORARIO
+ORDER BY SUM(p.CANTIDAD_PEDIDOS) DESC
+*/
 
 -- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados AS
-SELECT 
-	l.ID_LOCAL, 
-	d.DIA, 
+SELECT DISTINCT 
+	p.ID_LOCAL, 
+	d.DIA,
 	h.RANGO_HORARIO,
-	SUM(p.TOTAL_PRODUCTOS) AS MONTO_TOTAL  -- Asumo que lo que cobra el local es solo el costo total de los productos, el resto es de la app
+	SUM(p.TOTAL_PRODUCTOS) AS MONTO_NO_COBRADO  -- Asumo que lo que cobra el local es solo el costo total de los productos, el resto es de la app
 FROM 
 	MargeCreoQueOdioGDD.BI_Pedido p
-	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
-	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
     INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
     INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON p.ID_RANGO_HORARIO_PEDIDO = h.ID_HORARIO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Estado_Pedido e ON p.ID_ESTADO = e.ID_ESTADO
 WHERE 
 	e.ESTADO LIKE '%Cancelado%'
 GROUP BY 
-	l.ID_LOCAL, 
+	p.ID_LOCAL, 
 	d.DIA, 
-	h.RANGO_HORARIO,
-	p.TOTAL_PRODUCTOS;
+	h.RANGO_HORARIO
 GO
-/*
+
 -- Valor promedio mensual que tienen los envíos de pedidos en cada localidad.
 CREATE VIEW MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad AS
 SELECT
     t.MES AS MES_ENTREGA,
-    e.ID_LOCALIDAD_DESTINO,
-    AVG(e.PRECIO_ENVIO) AS PROMEDIO_MENSUAL
+    p.ID_LOCALIDAD,
+	SUM(p.PRECIO_ENVIO) / SUM(p.CANTIDAD_PEDIDOS) AS VALOR_PROMEDIO_ENVIO
 FROM
     MargeCreoQueOdioGDD.BI_Pedido p
-    INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p. = e.NRO_ENVIO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_ENTREGA = t.ID_TIEMPO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Estado_Pedido es ON p.ID_ESTADO = es.ID_ESTADO
-WHERE 
-    es.ESTADO NOT LIKE '%Cancelado%'
 GROUP BY
     t.MES,
-    e.ID_LOCALIDAD_DESTINO;
+    p.ID_LOCALIDAD;
 GO
 
 -- Desvío promedio en tiempo de entrega según el tipo de movilidad, el día de la semana y la franja horaria. El desvío debe calcularse en minutos 
 -- y representa la diferencia entre la fecha/hora en que se realizó el pedido y la fecha/hora que se entregó en comparación con los minutos de 
 -- tiempo estimados. Este indicador debe tener en cuenta todos los envíos, es decir, sumar tanto los envíos de pedidos como los de mensajería.
 
--- CREATE VIEW MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega AS
-
+CREATE VIEW MargeCreoQueOdioGDD.V_DesvioPromedioEnTiempoDeEntrega AS
+SELECT
+	epm.DIA_SEMANA,
+	epm.RANGO_HORARIO,
+	epm.TIPO_MOVILIDAD,
+    SUM(epm.DESVIO_TIEMPO_ENTREGA) / SUM(epm.CANTIDAD) AS DESVIO_PROMEDIO_TIEMPO_ENTREGA
+FROM 
+	(SELECT d.DIA AS DIA_SEMANA,
+			rh.RANGO_HORARIO AS RANGO_HORARIO,
+			SUM(p.DESVIO_TIEMPO_ENTREGA) AS DESVIO_TIEMPO_ENTREGA,
+			SUM(p.CANTIDAD_PEDIDOS) AS CANTIDAD,
+			tm.TIPO_MOVILIDAD AS TIPO_MOVILIDAD
+	FROM
+		MargeCreoQueOdioGDD.BI_Pedido p
+		INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
+		INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
+		INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm ON p.ID_TIPO_MOVILIDAD_REPARTIDOR = tm.ID_TIPO
+	GROUP BY
+		d.DIA,
+		rh.RANGO_HORARIO,
+		tm.TIPO_MOVILIDAD
+	UNION ALL
+	SELECT d.DIA AS DIA_SEMANA,
+		   rh.RANGO_HORARIO AS RANGO_HORARIO,
+		   SUM(em.DESVIO_TIEMPO_ENTREGA) AS DESVIO_TIEMPO_ENTREGA,
+		   SUM(em.CANTIDAD_ENVIOS_MENSAJERIA) AS CANTIDAD,
+		   tm.TIPO_MOVILIDAD AS TIPO_MOVILIDAD
+	FROM MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
+		INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON em.ID_DIA = d.ID_DIA
+		INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON em.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
+		INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Movilidad tm ON em.ID_TIPO_MOVILIDAD_REPARTIDOR = tm.ID_TIPO
+	GROUP BY
+		d.DIA,
+		rh.RANGO_HORARIO,
+		tm.TIPO_MOVILIDAD) AS epm
+GROUP BY
+	epm.DIA_SEMANA,
+	epm.RANGO_HORARIO,
+	epm.TIPO_MOVILIDAD;
+GO
 
 -- Monto total de los cupones utilizados por mes en función del rango etario de los usuarios.
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalDeCuponesUsadosXMes AS
 SELECT
     t.MES,
-    r.RANGO_ETARIO,
+    r.RANGO_ETARIO AS RANGO_ETARIO_USUARIO,
     SUM(p.TOTAL_CUPONES) AS MONTO_TOTAL_CUPONES
 FROM
     MargeCreoQueOdioGDD.BI_Pedido p
-    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario r ON p.ID_RANGO_ETARIO_USUARIOS = r.ID_ETARIO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_PEDIDO = t.ID_TIEMPO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario r ON p.ID_RANGO_ETARIO_USUARIO = r.ID_ETARIO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
 GROUP BY
     t.MES,
     r.RANGO_ETARIO;
@@ -1182,11 +1259,11 @@ CREATE VIEW MargeCreoQueOdioGDD.V_ValorAseguradoPromedioMensual AS
 SELECT
     t.MES,
     tp.TIPO_PAQUETE,
-    AVG(tp.VALOR_ASEGURADO) AS ValorAseguradoPromedio
+	SUM(em.VALOR_ASEGURADO_PAQUETE) / SUM(em.CANTIDAD_ENVIOS_MENSAJERIA) AS VALOR_ASEGURADO_PROMEDIO
 FROM
     MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
     INNER JOIN MargeCreoQueOdioGDD.BI_Tipo_Paquete tp ON em.ID_TIPO_PAQUETE = tp.ID_TIPO_PAQUETE
-	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON em.ID_TIEMPO_ENTREGA = t.ID_TIEMPO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON em.ID_TIEMPO = t.ID_TIEMPO
 GROUP BY
     t.MES,
     tp.TIPO_PAQUETE;
@@ -1195,85 +1272,144 @@ GO
 -- Promedio de calificación mensual por local
 CREATE VIEW MargeCreoQueOdioGDD.V_PromedioCalificacionMensual AS
 SELECT
-    ID_LOCAL,
     t.ANIO,
     t.MES,
-    AVG(CALIFICACION) AS PromedioCalificacion
+	p.ID_LOCAL,
+    --AVG(p.CALIFICACION) AS PROMEDIO_CALIFICACION,
+	SUM(p.CALIFICACION) / SUM(p.CANTIDAD_PEDIDOS) AS PROMEDIO_CALIFICACION
 FROM
     MargeCreoQueOdioGDD.BI_Pedido p
-	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_ENTREGA = t.ID_TIEMPO
+	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
 GROUP BY
-    ID_LOCAL,
     t.ANIO,
-    t.MES
+    t.MES,
+	p.ID_LOCAL
 GO
 
 -- Porcentaje de pedidos y mensajería entregados mensualmente según el rango etario de los repartidores y la localidad. Este indicador se debe tener en cuenta 
 -- y sumar tanto los envíos de pedidos como los de mensajería. El porcentaje se calcula en función del total general de pedidos y envíos mensuales entregados.
 
--- CREATE VIEW MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales AS
+CREATE VIEW MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales AS
+WITH TotalEntregados AS (
+    SELECT
+        MES,
+        RANGO_ETARIO,
+        ID_LOCALIDAD,
+        SUM(CANTIDAD_TOTAL) AS TOTAL_ENTREGADOS
+    FROM
+        (SELECT
+            t.MES,
+            re.RANGO_ETARIO,
+            l.ID_LOCALIDAD,
+            SUM(CANTIDAD_PEDIDOS) AS CANTIDAD_TOTAL
+        FROM
+            MargeCreoQueOdioGDD.BI_Pedido p
+            INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario re ON p.ID_RANGO_ETARIO_REPARTIDOR = re.ID_ETARIO
+            INNER JOIN MargeCreoQueOdioGDD.BI_Localidad l ON p.ID_LOCALIDAD = l.ID_LOCALIDAD
+            INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON t.ID_TIEMPO = p.ID_TIEMPO
+            INNER JOIN MargeCreoQueOdioGDD.BI_Estado_Pedido e ON e.ID_ESTADO = p.ID_ESTADO 
+        WHERE
+            e.ESTADO LIKE '%Entregado%'
+        GROUP BY
+            t.MES,
+            re.RANGO_ETARIO,
+            l.ID_LOCALIDAD
+        UNION ALL
+        SELECT
+            t.MES,
+            re.RANGO_ETARIO,
+            l.ID_LOCALIDAD,
+            SUM(CANTIDAD_ENVIOS_MENSAJERIA) AS CANTIDAD_TOTAL
+        FROM
+            MargeCreoQueOdioGDD.BI_Envio_Mensajeria em
+            INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario re ON em.ID_RANGO_ETARIO_REPARTIDOR = re.ID_ETARIO
+            INNER JOIN MargeCreoQueOdioGDD.BI_Localidad l ON em.ID_LOCALIDAD_DESTINO = l.ID_LOCALIDAD
+            INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON t.ID_TIEMPO = em.ID_TIEMPO
+            INNER JOIN MargeCreoQueOdioGDD.BI_Estado_Mensajeria e ON e.ID_ESTADO = em.ID_ESTADO 
+        WHERE
+            e.ESTADO LIKE '%Entregado%'
+        GROUP BY
+            t.MES,
+            re.RANGO_ETARIO,
+            l.ID_LOCALIDAD) AS t
+    GROUP BY
+        t.MES,
+        RANGO_ETARIO,
+        ID_LOCALIDAD
+),
+PorcentajeEntregas AS (
+    SELECT
+        MES,
+        RANGO_ETARIO,
+        ID_LOCALIDAD,
+        FORMAT((TOTAL_ENTREGADOS * 100.0) / SUM(TOTAL_ENTREGADOS) OVER (PARTITION BY MES), 'P') AS PORCENTAJE_ENTREGAS
+    FROM
+        TotalEntregados
+)
+SELECT
+    MES,
+    RANGO_ETARIO,
+    ID_LOCALIDAD,
+    PORCENTAJE_ENTREGAS
+FROM
+    PorcentajeEntregas;
+GO
+
+--select * from MargeCreoQueOdioGDD.V_PorcentajeEntregasMensuales;
 
 -- Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario
 CREATE VIEW MargeCreoQueOdioGDD.V_CantidadReclamosMensuales AS
 SELECT
-    t.ANIO,
-    t.MES,
-    r.ID_LOCAL,
     l.NOMBRE,
+    t.MES,
     d.DIA,
-    h.RANGO_HORARIO,
-    COUNT(*) AS CantidadReclamos
+    h1.RANGO_HORARIO AS RANGO_HORARIO_INICIO,
+    h2.RANGO_HORARIO AS RANGO_HORARIO_SOLUCION,
+    SUM(CANTIDAD_RECLAMOS) AS CANTIDAD_RECLAMOS
 FROM
     MargeCreoQueOdioGDD.BI_Reclamo r
-    --INNER JOIN MargeCreoQueOdioGDD.BI_Pedido p ON r.ID_PEDIDO = p.NRO_PEDIDO
     INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON r.ID_LOCAL = l.ID_LOCAL
-	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON r.ID_TIEMPO_INICIO = t.ID_TIEMPO
-	INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON r.ID_DIA_INICIO = d.ID_DIA
-	INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON r.ID_RANGO_HORARIO_INICIO = h.ID_HORARIO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON r.ID_TIEMPO = t.ID_TIEMPO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON r.ID_DIA = d.ID_DIA
+    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h1 ON r.ID_RANGO_HORARIO_INICIO = h1.ID_HORARIO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h2 ON r.ID_RANGO_HORARIO_SOLUCION = h2.ID_HORARIO
 GROUP BY
-    t.ANIO,
-    t.MES,
-    r.ID_LOCAL,
     l.NOMBRE,
+    t.MES,
     d.DIA,
-    h.RANGO_HORARIO
+    h1.RANGO_HORARIO,
+    h2.RANGO_HORARIO
 GO
 
 -- Tiempo promedio de resolución de reclamos mensual según cada tipo de reclamo y rango etario de los operadores. El tiempo de resolución debe calcularse en minutos 
 -- y representa la diferencia entre la fecha/hora en que se realizó el reclamo y la fecha/hora que se resolvió
 CREATE VIEW MargeCreoQueOdioGDD.V_TiempoPromedioResolucion AS
 SELECT
-    t.ANIO,
     t.MES,
     r.TIPO_RECLAMO,
     re.RANGO_ETARIO,
-    AVG(TIEMPO_TOTAL_RESOLUCION) AS TiempoPromedioResolucion
+    AVG(TIEMPO_TOTAL_RESOLUCION) AS TIEMPO_PROMEDIO_RESOLUCION
 FROM
     MargeCreoQueOdioGDD.BI_Reclamo r
-    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Etario re ON r.ID_RANGO_ETARIO_OPERADORES = re.ID_ETARIO
-	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON r.ID_TIEMPO_SOLUCION = t.ID_TIEMPO
+    JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON r.ID_TIEMPO = t.ID_TIEMPO
+    JOIN MargeCreoQueOdioGDD.BI_Rango_Etario re ON r.ID_RANGO_ETARIO_OPERADORES = re.ID_ETARIO
 GROUP BY
-    t.ANIO,
     t.MES,
     r.TIPO_RECLAMO,
-    re.RANGO_ETARIO
+    re.RANGO_ETARIO;
 GO
 
 -- Monto mensual generado en cupones a partir de reclamos.
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoMensualGenerado AS
 SELECT
-    t.ANIO,
     t.MES,
-    SUM(MONTO) AS MontoGenerado
+    SUM(r.MONTO_CUPONES_GENERADOS) AS MONTO_CUPONES
 FROM
-    MargeCreoQueOdioGDD.BI_Cupon_Descuento c
-	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON c.ID_TIEMPO_ALTA = t.ID_TIEMPO
-WHERE
-    ES_RECLAMO = 'Si'
+    MargeCreoQueOdioGDD.BI_Reclamo r
+	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON r.ID_TIEMPO = t.ID_TIEMPO
 GROUP BY
-    t.ANIO,
     t.MES
-GO*/
+GO
 
 /* --------------------------------------------- Ejecución de la migración --------------------------------------------- */
 
