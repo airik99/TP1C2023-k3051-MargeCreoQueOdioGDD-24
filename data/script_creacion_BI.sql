@@ -1017,7 +1017,7 @@ BEGIN
     PRINT 'Se comienzan a migrar los reclamos...';
     INSERT INTO MargeCreoQueOdioGDD.BI_Reclamo(ID_TIEMPO, ID_DIA, ID_RANGO_HORARIO_INICIO, ID_RANGO_HORARIO_SOLUCION, TIPO_RECLAMO, ID_ESTADO,
 											   ID_RANGO_ETARIO_OPERADORES, ID_LOCAL, TIEMPO_TOTAL_RESOLUCION, MONTO_CUPONES_GENERADOS, CANTIDAD_RECLAMOS)
-	SELECT t.ID_TIEMPO AS ID_TIEMPO,
+    SELECT t.ID_TIEMPO AS ID_TIEMPO,
 		   d.ID_DIA AS ID_DIA,
 		   r1.ID_HORARIO AS ID_RANGO_HORARIO_INICIO,
 		   r2.ID_HORARIO AS ID_RANGO_HORARIO_SOLUCION,
@@ -1047,11 +1047,10 @@ BEGIN
 			 r.ID_ESTADO,
 			 tr.TIPO_RECLAMO,
 			 l.ID_LOCAL
-
 END
 GO
 
---select * from MargeCreoQueOdioGDD.BI_Reclamo -- 11161 filas antes 10.864 ahora
+--select * from MargeCreoQueOdioGDD.BI_Reclamo -- 11161 filas
 
 -- Cupon Descuento
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_BI_cupon_descuento
@@ -1092,21 +1091,26 @@ CREATE VIEW MargeCreoQueOdioGDD.V_MayorCantidadPedidos AS
 SELECT
     t.ANIO,
     t.MES,
-    l.LOCALIDAD,
+    l.NOMBRE,
     c.CATEGORIA,
-    MAX(d.DIA) 'Dia',
-    MAX(rh.RANGO_HORARIO) 'Rango Horario',
-    COUNT(*) AS CantidadPedidos
-FROM MargeCreoQueOdioGDD.BI_Pedido p
-INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
-INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
-INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario rh ON p.ID_RANGO_HORARIO_PEDIDO = rh.ID_HORARIO
-INNER JOIN MargeCreoQueOdioGDD.BI_Localidad l ON p.ID_LOCALIDAD = l.ID_LOCALIDAD
-INNER JOIN MargeCreoQueOdioGDD.BI_Local loc ON p.ID_LOCAL = loc.ID_LOCAL
-INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON loc.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
-GROUP BY l.LOCALIDAD, c.CATEGORIA, t.ANIO, t.MES
+    d.DIA,
+    h.RANGO_HORARIO,
+    COUNT(*) AS CANTIDAD_PEDIDOS
+FROM
+    MargeCreoQueOdioGDD.BI_Pedido p
+    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_PEDIDO = t.ID_TIEMPO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA_PEDIDO = d.ID_DIA
+    INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON p.ID_RANGO_HORARIO_PEDIDO = h.ID_HORARIO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
+    INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON l.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
+GROUP BY
+    t.ANIO,
+    t.MES,
+    l.NOMBRE,
+    c.CATEGORIA,
+    d.DIA,
+    h.RANGO_HORARIO;
 GO
-
 
 -- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
