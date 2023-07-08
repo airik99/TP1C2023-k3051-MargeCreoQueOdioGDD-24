@@ -1085,7 +1085,7 @@ END
 GO
 
 /* --------------------------------------------- Creacion de vistas --------------------------------------------- */
-/*
+
 -- Día de la semana y franja horaria con mayor cantidad de pedidos según la localidad y categoría del local, para cada mes de cada año.
 CREATE VIEW MargeCreoQueOdioGDD.V_MayorCantidadPedidos AS
 SELECT
@@ -1098,8 +1098,8 @@ SELECT
     COUNT(*) AS CANTIDAD_PEDIDOS
 FROM
     MargeCreoQueOdioGDD.BI_Pedido p
-    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_PEDIDO = t.ID_TIEMPO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA_PEDIDO = d.ID_DIA
+    INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
     INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON p.ID_RANGO_HORARIO_PEDIDO = h.ID_HORARIO
     INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
     INNER JOIN MargeCreoQueOdioGDD.BI_Categoria_Local c ON l.ID_CATEGORIA = c.ID_CATEGORIA_LOCAL
@@ -1112,6 +1112,7 @@ GROUP BY
     h.RANGO_HORARIO;
 GO
 
+
 -- Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y la franja horaria (cuentan como
 -- pedidos cancelados tanto los que cancela el usuario como el local)
 CREATE VIEW MargeCreoQueOdioGDD.V_MontoTotalXPedidosCancelados AS
@@ -1123,8 +1124,8 @@ SELECT
 FROM 
 	MargeCreoQueOdioGDD.BI_Pedido p
 	INNER JOIN MargeCreoQueOdioGDD.BI_Local l ON p.ID_LOCAL = l.ID_LOCAL
-	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_PEDIDO = t.ID_TIEMPO
-    INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA_PEDIDO = d.ID_DIA
+	INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO = t.ID_TIEMPO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Dia d ON p.ID_DIA = d.ID_DIA
     INNER JOIN MargeCreoQueOdioGDD.BI_Rango_Horario h ON p.ID_RANGO_HORARIO_PEDIDO = h.ID_HORARIO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Estado_Pedido e ON p.ID_ESTADO = e.ID_ESTADO
 WHERE 
@@ -1135,7 +1136,7 @@ GROUP BY
 	h.RANGO_HORARIO,
 	p.TOTAL_PRODUCTOS;
 GO
-
+/*
 -- Valor promedio mensual que tienen los envíos de pedidos en cada localidad.
 CREATE VIEW MargeCreoQueOdioGDD.V_ValorEnvioPromedioMensualXLocalidad AS
 SELECT
@@ -1144,7 +1145,7 @@ SELECT
     AVG(e.PRECIO_ENVIO) AS PROMEDIO_MENSUAL
 FROM
     MargeCreoQueOdioGDD.BI_Pedido p
-    INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p.ID_ENVIO = e.NRO_ENVIO
+    INNER JOIN MargeCreoQueOdioGDD.BI_Envio e ON p. = e.NRO_ENVIO
     INNER JOIN MargeCreoQueOdioGDD.BI_Tiempo t ON p.ID_TIEMPO_ENTREGA = t.ID_TIEMPO
 	INNER JOIN MargeCreoQueOdioGDD.BI_Estado_Pedido es ON p.ID_ESTADO = es.ID_ESTADO
 WHERE 
@@ -1272,8 +1273,8 @@ WHERE
 GROUP BY
     t.ANIO,
     t.MES
-GO
-*/
+GO*/
+
 /* --------------------------------------------- Ejecución de la migración --------------------------------------------- */
 
 EXEC MargeCreoQueOdioGDD.migrar_BI_provincia;
