@@ -1060,6 +1060,13 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
 GO
 
 ---------------------------- LocalidadXRepartidor ----------------------------
+/*
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerFechaReciente')
+DROP FUNCTION MargeCreoQueOdioGDD.obtenerFechaReciente
+
+IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerLocalidadActiva')
+DROP FUNCTION MargeCreoQueOdioGDD.obtenerLocalidadActiva
+
 CREATE FUNCTION MargeCreoQueOdioGDD.obtenerFechaReciente(@id_repartidor INT)
 RETURNS DATE
 AS
@@ -1096,8 +1103,7 @@ BEGIN
         WHERE REPARTIDOR_DNI IS NOT NULL;
 END;
 GO
-
-
+*/
 
 --select * from MargeCreoQueOdioGDD.localidadxrepartidor
 ---------------------------- Operador ----------------------------
@@ -1326,4 +1332,4 @@ EXEC MargeCreoQueOdioGDD.migrar_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_pedido;
 EXEC MargeCreoQueOdioGDD.migrar_productos_x_pedido;
 EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo;
-EXEC MargeCreoQueOdioGDD.migrar_localidades_x_repartidor;
+--EXEC MargeCreoQueOdioGDD.migrar_localidades_x_repartidor;

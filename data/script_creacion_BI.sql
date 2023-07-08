@@ -1294,8 +1294,8 @@ EXEC MargeCreoQueOdioGDD.migrar_BI_estado_reclamo;
 EXEC MargeCreoQueOdioGDD.migrar_BI_tipo_medio_pago;
 EXEC MargeCreoQueOdioGDD.migrar_BI_pedidos;    
 EXEC MargeCreoQueOdioGDD.migrar_BI_envio_mensajeria;
-EXEC MargeCreoQueOdioGDD.migrar_BI_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_BI_cupon_descuento;
+EXEC MargeCreoQueOdioGDD.migrar_BI_reclamos;
 
 /* --------------------------------------------- Ejecución de las vistas --------------------------------------------- */
 /*
