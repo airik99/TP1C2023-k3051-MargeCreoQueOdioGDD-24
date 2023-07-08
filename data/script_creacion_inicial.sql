@@ -1039,6 +1039,11 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_direcciones_x_usuarios
   END
 GO
 
+
+
+
+
+
 --select * from MargeCreoQueOdioGDD.direccionxusuario
 ---------------------------- Repartidor ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
@@ -1060,52 +1065,34 @@ CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_repartidores
 GO
 
 ---------------------------- LocalidadXRepartidor ----------------------------
-/*
-IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerFechaReciente')
-DROP FUNCTION MargeCreoQueOdioGDD.obtenerFechaReciente
-
-IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerLocalidadActiva')
-DROP FUNCTION MargeCreoQueOdioGDD.obtenerLocalidadActiva
-
-CREATE FUNCTION MargeCreoQueOdioGDD.obtenerFechaReciente(@id_repartidor INT)
-RETURNS DATE
-AS
-BEGIN
-    DECLARE @maxima_fecha DATE;
-    
-    SELECT @maxima_fecha = MAX(COALESCE(PEDIDO_FECHA_ENTREGA, ENVIO_MENSAJERIA_FECHA_ENTREGA))
-    FROM gd_esquema.Maestra
-    INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.EMAIL = REPARTIDOR_EMAIL AND r.ID_REPARTIDOR = @id_repartidor
-    GROUP BY REPARTIDOR_EMAIL;
-    
-    RETURN @maxima_fecha;
-END
-GO
-
-
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_localidades_x_repartidor
 AS
 BEGIN
-    ALTER TABLE tu_tabla
-    ADD FECHA_RECIENTE DATETIME;
-    
-    DECLARE @fecha_maxima DATE;
-    
+
     PRINT 'Se comienzan a migrar las localidades x repartidor...'
-    INSERT INTO localidadxrepartidor(ID_REPARTIDOR, ID_LOCALIDAD, FECHA_RECIENTE, ACTIVO)
-        SELECT r.ID_REPARTIDOR,
-               lo.ID_LOCALIDAD AS ID_LOCALIDAD,
-               @fecha_maxima = MargeCreoQueOdioGDD.obtenerFechaReciente(r.ID_REPARTIDOR),
-               (CASE WHEN @fecha_maxima = PEDIDO_FECHA_ENTREGA OR @fecha_maxima = ENVIO_MENSAJERIA_FECHA_ENTREGA THEN '1' ELSE '0' END)
-        FROM gd_esquema.Maestra m
-        INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.DNI = m.REPARTIDOR_DNI AND r.EMAIL = m.REPARTIDOR_EMAIL
-        INNER JOIN MargeCreoQueOdioGDD.localidad AS lo ON (lo.NOMBRE = ISNULL(m.LOCAL_LOCALIDAD, m.ENVIO_MENSAJERIA_LOCALIDAD))
-        WHERE REPARTIDOR_DNI IS NOT NULL;
+    INSERT INTO localidadxrepartidor(ID_REPARTIDOR, ID_LOCALIDAD, ACTIVO)
+    SELECT DISTINCT r.ID_REPARTIDOR,
+           lo.ID_LOCALIDAD AS ID_LOCALIDAD,
+           ACTIVO = (CASE WHEN (CASE WHEN (SELECT MAX(COALESCE(PEDIDO_FECHA_ENTREGA, ENVIO_MENSAJERIA_FECHA_ENTREGA)) FROM gd_esquema.Maestra m1 WHERE m1.REPARTIDOR_DNI = m.REPARTIDOR_DNI GROUP BY REPARTIDOR_DNI) = PEDIDO_FECHA_ENTREGA AND LOCAL_LOCALIDAD = lo.NOMBRE THEN LOCAL_LOCALIDAD 
+                               WHEN (SELECT MAX(COALESCE(PEDIDO_FECHA_ENTREGA, ENVIO_MENSAJERIA_FECHA_ENTREGA)) FROM gd_esquema.Maestra m1 WHERE m1.REPARTIDOR_DNI = m.REPARTIDOR_DNI GROUP BY REPARTIDOR_DNI) = ENVIO_MENSAJERIA_FECHA_ENTREGA AND ENVIO_MENSAJERIA_LOCALIDAD = lo.NOMBRE THEN ENVIO_MENSAJERIA_LOCALIDAD END) 
+                    IS NOT NULL THEN 1 ELSE 0 END)
+    FROM gd_esquema.Maestra m
+    INNER JOIN MargeCreoQueOdioGDD.repartidor r ON r.DNI = m.REPARTIDOR_DNI AND r.EMAIL = m.REPARTIDOR_EMAIL
+    INNER JOIN MargeCreoQueOdioGDD.localidad AS lo ON (lo.NOMBRE = ISNULL(m.LOCAL_LOCALIDAD, m.ENVIO_MENSAJERIA_LOCALIDAD))
+    WHERE REPARTIDOR_DNI IS NOT NULL
+    ORDER BY r.ID_REPARTIDOR
+
+	DELETE FROM MargeCreoQueOdioGDD.localidadxrepartidor
+    WHERE EXISTS (
+    SELECT 1
+    FROM MargeCreoQueOdioGDD.localidadxrepartidor AS t2
+    WHERE t2.ID_LOCALIDAD = MargeCreoQueOdioGDD.localidadxrepartidor.ID_LOCALIDAD
+      AND t2.ID_REPARTIDOR = MargeCreoQueOdioGDD.localidadxrepartidor.ID_REPARTIDOR
+      AND t2.ACTIVO = 1
+    )
+    AND ACTIVO = 0;
 END;
 GO
-*/
-
---select * from MargeCreoQueOdioGDD.localidadxrepartidor
 ---------------------------- Operador ----------------------------
 CREATE PROCEDURE MargeCreoQueOdioGDD.migrar_operadores
  AS
@@ -1332,4 +1319,4 @@ EXEC MargeCreoQueOdioGDD.migrar_reclamos;
 EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_pedido;
 EXEC MargeCreoQueOdioGDD.migrar_productos_x_pedido;
 EXEC MargeCreoQueOdioGDD.migrar_descuentos_x_reclamo;
---EXEC MargeCreoQueOdioGDD.migrar_localidades_x_repartidor;
+EXEC MargeCreoQueOdioGDD.migrar_localidades_x_repartidor;
